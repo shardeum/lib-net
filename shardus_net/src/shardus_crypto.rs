@@ -1,32 +1,22 @@
-use crypto::ShardusCrypto;
 use std::sync::Once;
+use crypto::ShardusCrypto;
+use once_cell::sync::OnceCell;
 
+static SHARDUS_CRYPTO_INSTANCE: OnceCell<ShardusCrypto> = OnceCell::new();
 static INIT: Once = Once::new();
 
-// TODO figure out optimal way to lock mutability of this static as soon as it's initialized once.
-// - Mutex locks both read write access, will lock out all threads that want to read? #BAD
-// - Can we use RwLock?
-static mut SHARDUS_CRYPTO_INSTANCE: Option<ShardusCrypto> = None;
-
+// Initialize the ShardusCrypto instance exactly once
 pub fn initialize_shardus_crypto_instance(hex_key: &str) {
-    INIT.call_once(|| match unsafe { &SHARDUS_CRYPTO_INSTANCE } {
-        Some(_) => {
-            panic!("ShardusCrypto instance already initialized");
-        }
-        None => {
-            let crypto = ShardusCrypto::new(hex_key);
-            unsafe {
-                SHARDUS_CRYPTO_INSTANCE = Some(crypto);
-            }
+    INIT.call_once(|| {
+        let crypto = ShardusCrypto::new(hex_key);
+        // Attempt to set the OnceCell, which should never fail since it's guarded by `INIT.call_once()`
+        if SHARDUS_CRYPTO_INSTANCE.set(crypto).is_err() {
+            panic!("ShardusCrypto instance has already been initialized, this should never happen");
         }
     });
 }
 
+// Get a reference to the initialized ShardusCrypto instance
 pub fn get_shardus_crypto_instance() -> &'static ShardusCrypto {
-    unsafe {
-        match &SHARDUS_CRYPTO_INSTANCE {
-            Some(instance) => instance,
-            None => panic!("ShardusCrypto instance not initialized"),
-        }
-    }
+    SHARDUS_CRYPTO_INSTANCE.get().expect("ShardusCrypto instance not initialized")
 }
