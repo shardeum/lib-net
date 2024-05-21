@@ -364,7 +364,7 @@ export const Sn = (opts: SnOpts) => {
       sign?: Sign
     ) => {
       // [TODO] Secure this with validation
-      let augData: AugmentedData = jsonParse(augDataStr)
+      let augData: AugmentedData = jsonParse(augDataStr, opts.customJsonParser)
 
       //here we will log the received message.  note we exploit an aspect of augData
       //that the data part is the first value and will be close enough to the start ot the string
