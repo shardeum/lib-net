@@ -55,6 +55,7 @@ export type SnOpts = {
     sendHeaderVersion: number
   }
   customStringifier?: (val) => string
+  customJsonParser?: (value: string) => any
   crypto: {
     hashKey: string
     signingSecretKeyHex: string

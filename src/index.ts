@@ -13,7 +13,7 @@ import {
   TimeoutCallback,
   validateSnOpts,
 } from './types'
-import { base64BufferReviver, stringifyData } from './util/Encoding'
+import { jsonParse, jsonStringify } from './util/Encoding'
 import { NewNumberHistogram } from './util/Histogram'
 import { logMessageInfo } from './util/Log'
 import { TTLMap } from './util/TTLMap'
@@ -141,9 +141,9 @@ export const Sn = (opts: SnOpts) => {
     },
     awaitProcessing: boolean = true
   ) => {
-    const stringifiedData = stringifyData(augData, opts.customStringifier)
+    const stringifiedData = jsonStringify(augData, opts.customStringifier)
     const stringifiedHeader = optionalHeader
-      ? stringifyData(optionalHeader.headerData, opts.customStringifier)
+      ? jsonStringify(optionalHeader.headerData, opts.customStringifier)
       : null
 
     /* prettier-ignore */ if(logFlags.net_verbose) logMessageInfo(augData, stringifiedData)
@@ -364,7 +364,7 @@ export const Sn = (opts: SnOpts) => {
       sign?: Sign
     ) => {
       // [TODO] Secure this with validation
-      let augData: AugmentedData = JSON.parse(augDataStr, base64BufferReviver)
+      let augData: AugmentedData = jsonParse(augDataStr)
 
       //here we will log the received message.  note we exploit an aspect of augData
       //that the data part is the first value and will be close enough to the start ot the string
