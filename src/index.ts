@@ -182,7 +182,7 @@ export const Sn = (opts: SnOpts) => {
               sendCallback
             )
           }
-        } else{
+        } else {
           /* prettier-ignore */ if(logFlags.net_verbose) console.log('sending without header')
           _net.send(port, address, stringifiedData, sendCallback)
         }
