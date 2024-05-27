@@ -24,18 +24,18 @@
     "release": "np --no-cleanup --no-yarn --any-branch",
     "prepack": "npm run build-node",
     "postinstall": "npm run build-rust",
-    "test": "cargo test",
+    "test": "npm run test:cargo",
     "test2": "ts-node test/test_lru.ts -p 44001 -c 2",
+    "test:cargo": "cargo test",
     "build:rust": "cargo build --workspace && npm run postbuild-cargo",
     "postbuild-cargo": "node scripts/copy-rename.js",
-    "lint": "eslint ./src/**/*.ts --quiet",
-    "lint-windows": "eslint ./src/**/*.ts --quiet",
-    "format-check": "prettier --check './src/**/*.ts'",
+    "lint": "eslint \"./src/**/*.ts\"",
+    "format-check": "prettier --check \"./src/**/*.ts\"",
     "clean": "cargo clean"
   },
   "repository": {
     "type": "git",
-    "url": "https://gitlab.com/Shardus/shardus-net.git"
+    "url": "https://github.com/shardeum/lib-net.git"
   },
   "publishConfig": {
     "access": "public"

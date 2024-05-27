@@ -66,7 +66,7 @@ export type SnOpts = {
  * @param opts - The options object to validate.
  * @throws An error if the options object is not valid.
  */
-export const validateSnOpts = (opts: SnOpts) => {
+export const validateSnOpts = (opts: SnOpts): void => {
   if (!opts) throw new Error('snq: must supply options')
 
   if (!opts.port || typeof opts.port !== 'number') throw new Error('snq: must supply port')
