@@ -11,13 +11,15 @@ export class TTLMap<T> {
 
   public set(key: string, value: T, ttl: number, onExpiry?: OnExpiryCallback<T>): void {
     const expiry = Date.now() + ttl
-    const timeoutId = setTimeout(() => {
-      if (onExpiry) {
-        onExpiry(key, value)
-      }
-      delete this.map[key]
-    }, ttl)
+    const timeoutId = setTimeout(this.timeoutCallback, ttl, key, value, onExpiry)
     this.map[key] = { value, expiry, timeoutId }
+  }
+
+  private timeoutCallback(key: string, value: T, onExpiry?: OnExpiryCallback<T>): void {
+    if (onExpiry) {
+      onExpiry(key, value)
+    }
+    delete this.map[key]
   }
 
   public get(key: string): T | undefined {

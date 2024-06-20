@@ -141,9 +141,7 @@ export const Sn = (opts: SnOpts) => {
     },
     awaitProcessing: boolean = true
   ) => {
-
     return new Promise<{ success: boolean; error?: string }>((resolve, reject) => {
-
       const stringifiedData = jsonStringify(augData, opts.customStringifier)
       const stringifiedHeader = optionalHeader
         ? jsonStringify(optionalHeader.headerData, opts.customStringifier)
@@ -194,47 +192,45 @@ export const Sn = (opts: SnOpts) => {
 
       // a timeout of 0 means no return message is expected.
       if (timeout !== 0) {
-        responseManager(augData, timeout, onTimeout, onResponse)
+        const timer = setTimeout(reqTimeoutScheduler, timeout, augData, onTimeout)
+
+        // this is where we bind the response callback to the UUID
+        // later extractUUIDHandleData will call this callback if it
+        // finds a UUID match.
+        responseUUIDMapping[augData.UUID] = {
+          callback: (data: unknown, appHeader?: AppHeader, sign?: Sign) => {
+            clearTimeout(timer)
+            onResponse(data, appHeader, sign)
+          },
+          timestamp: Date.now(),
+        }
       }
     })
   }
 
-  function responseManager(augData: AugmentedData, timeout: number, onTimeout: TimeoutCallback, onResponse: ResponseCallback) {
-    const timer = setTimeout(() => {
-      const mapping = responseUUIDMapping[augData.UUID]
-      timedOutUUIDMapping.set(
-        augData.UUID,
-        {
-          timedOutAt: Date.now(),
-          requestCreatedAt: mapping !== undefined ? mapping.timestamp : 0,
-        },
-        retainTimedOutEntriesForMillis,
-        (key, value) => {
-          /* prettier-ignore */ if(logFlags.net_verbose) console.log(`_sendAug: request id ${key}: expired from timedOutUUIDMapping at ${value.timedOutAt}, request created at ${value.requestCreatedAt}}`)
-          /* prettier-ignore */ if(logFlags.net_verbose) histogram.logData((Date.now() - value.requestCreatedAt) / 1000)
-        }
-      )
-      /* prettier-ignore */ if(logFlags.net_verbose) console.log(`_sendAug: request id ${augData.UUID}: timed out after ${Date.now() - mapping.timestamp}ms`)
-      /* prettier-ignore */ if(logFlags.net_verbose) console.log(`_sendAug: request id ${augData.UUID}: detailed aug data: ${JSON.stringify(augData)}`)
-
-      //should we clear the request socket here?
-      //should be be logging better at this level
-      //maybe a counter service could be passed to this library?
-
-      delete responseUUIDMapping[augData.UUID]
-      onTimeout()
-    }, timeout)
-
-    // this is where we bind the response callback to the UUID
-    // later extractUUIDHandleData will call this callback if it
-    // finds a UUID match.
-    responseUUIDMapping[augData.UUID] = {
-      callback: (data: unknown, appHeader?: AppHeader, sign?: Sign) => {
-        clearTimeout(timer)
-        onResponse(data, appHeader, sign)
+  function reqTimeoutScheduler(augData: AugmentedData, onTimeout: TimeoutCallback) {
+    const mapping = responseUUIDMapping[augData.UUID]
+    timedOutUUIDMapping.set(
+      augData.UUID,
+      {
+        timedOutAt: Date.now(),
+        requestCreatedAt: mapping !== undefined ? mapping.timestamp : 0,
       },
-      timestamp: Date.now(),
-    }
+      retainTimedOutEntriesForMillis,
+      (key, value) => {
+        /* prettier-ignore */ if(logFlags.net_verbose) console.log(`_sendAug: request id ${key}: expired from timedOutUUIDMapping at ${value.timedOutAt}, request created at ${value.requestCreatedAt}}`)
+        /* prettier-ignore */ if(logFlags.net_verbose) histogram.logData((Date.now() - value.requestCreatedAt) / 1000)
+      }
+    )
+    /* prettier-ignore */ if(logFlags.net_verbose) console.log(`_sendAug: request id ${augData.UUID}: timed out after ${Date.now() - mapping.timestamp}ms`)
+    /* prettier-ignore */ if(logFlags.net_verbose) console.log(`_sendAug: request id ${augData.UUID}: detailed aug data: ${JSON.stringify(augData)}`)
+
+    //should we clear the request socket here?
+    //should be be logging better at this level
+    //maybe a counter service could be passed to this library?
+
+    delete responseUUIDMapping[augData.UUID]
+    onTimeout()
   }
 
   /**
