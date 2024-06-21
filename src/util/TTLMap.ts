@@ -1,3 +1,5 @@
+// import { time } from 'console'
+
 export interface TTLMapValue<T> {
   value: T
   expiry: number
@@ -11,15 +13,15 @@ export class TTLMap<T> {
 
   public set(key: string, value: T, ttl: number, onExpiry?: OnExpiryCallback<T>): void {
     const expiry = Date.now() + ttl
-    const timeoutId = setTimeout(this.timeoutCallback, ttl, key, value, onExpiry)
+    const timeoutId = setTimeout(() => {
+      console.log('reached #1')
+      if (onExpiry) {
+        console.log('reached #2')
+        onExpiry(key, value)
+      }
+      delete this.map[key]
+    }, ttl)
     this.map[key] = { value, expiry, timeoutId }
-  }
-
-  private timeoutCallback(key: string, value: T, onExpiry?: OnExpiryCallback<T>): void {
-    if (onExpiry) {
-      onExpiry(key, value)
-    }
-    delete this.map[key]
   }
 
   public get(key: string): T | undefined {

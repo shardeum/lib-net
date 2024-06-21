@@ -24,14 +24,15 @@
     "release": "np --no-cleanup --no-yarn --any-branch",
     "prepack": "npm run build-node",
     "postinstall": "npm run build-rust",
-    "test": "npm run test:cargo",
-    "test2": "ts-node test/test_lru.ts -p 44001 -c 2",
+    "it-test": "npm run test:cargo",
+    "it-test2": "ts-node test/test_lru.ts -p 44001 -c 2",
     "test:cargo": "cargo test",
     "build:rust": "cargo build --workspace && npm run postbuild-cargo",
     "postbuild-cargo": "node scripts/copy-rename.js",
     "lint": "eslint \"./src/**/*.ts\"",
     "format-check": "prettier --check \"./src/**/*.ts\"",
-    "clean": "cargo clean"
+    "clean": "cargo clean",
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -69,7 +70,10 @@
     "gts": "3.1.0",
     "np": "9.2.0",
     "prettier": "2.7.1",
-    "typescript": "4.4.4"
+    "typescript": "4.4.4",
+    "@types/jest": "27.0.1",
+    "jest": "27.1.1",
+    "ts-jest": "27.0.5"
   },
   "overrides": {
     "got": "11.8.5"
