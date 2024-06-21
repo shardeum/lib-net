@@ -14,9 +14,7 @@ export class TTLMap<T> {
   public set(key: string, value: T, ttl: number, onExpiry?: OnExpiryCallback<T>): void {
     const expiry = Date.now() + ttl
     const timeoutId = setTimeout(() => {
-      console.log('reached #1')
       if (onExpiry) {
-        console.log('reached #2')
         onExpiry(key, value)
       }
       delete this.map[key]
