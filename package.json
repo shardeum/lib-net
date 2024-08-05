@@ -30,8 +30,8 @@
     "build:rust": "cargo build --workspace && npm run postbuild-cargo",
     "postbuild-cargo": "node scripts/copy-rename.js",
     "lint": "eslint \"./src/**/*.ts\"",
-    "format-check": "prettier --check './src/**/*.ts'",
-    "format-fix": "prettier --write './src/**/*.ts'",
+    "format-check": "prettier --check \"./src/**/*.ts\"",
+    "format-fix": "prettier --write \"./src/**/*.ts\"",
     "clean": "cargo clean",
     "test": "jest"
   },
