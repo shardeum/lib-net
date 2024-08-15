@@ -187,6 +187,7 @@ export const Sn = (opts: SnOpts) => {
         }
       } catch (error) {
         console.log('_sendAug - error sending from ts side of shardus-net', error)
+        resolve({ success: false, error: 'error caught in _sendAug' });
         throw error
       }
 
