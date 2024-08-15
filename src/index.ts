@@ -142,20 +142,22 @@ export const Sn = (opts: SnOpts) => {
     awaitProcessing: boolean = true
   ) => {
     return new Promise<{ success: boolean; error?: string }>((resolve, reject) => {
-      const stringifiedData = jsonStringify(augData, opts.customStringifier)
-      const stringifiedHeader = optionalHeader
-        ? jsonStringify(optionalHeader.headerData, opts.customStringifier)
-        : null
-      /* prettier-ignore */ if(logFlags.net_verbose) logMessageInfo(augData, stringifiedData)
+      //must have everything covered by try catch so we can resolve a promise and not leak mem
+      try {      
+        const stringifiedData = jsonStringify(augData, opts.customStringifier)
+        const stringifiedHeader = optionalHeader
+          ? jsonStringify(optionalHeader.headerData, opts.customStringifier)
+          : null
+        /* prettier-ignore */ if(logFlags.net_verbose) logMessageInfo(augData, stringifiedData)
 
-      const sendCallback = (error) => {
-        if (error) {
-          resolve({ success: false, error })
-        } else {
-          resolve({ success: true })
+        const sendCallback = (error) => {
+          if (error) {
+            resolve({ success: false, error })
+          } else {
+            resolve({ success: true })
+          }
         }
-      }
-      try {
+
         if (optionalHeader && stringifiedHeader !== null) {
           /* prettier-ignore */ if(logFlags.net_verbose) console.log('sending with header')
           // if it is a multi send operation, from shardus-core, array of ports and addresses shall be sent.
@@ -187,24 +189,27 @@ export const Sn = (opts: SnOpts) => {
         }
       } catch (error) {
         console.log('_sendAug - error sending from ts side of shardus-net', error)
-        resolve({ success: false, error: 'error caught in _sendAug' });
+        resolve({ success: false, error: 'error caught in _sendAug 1' });
         throw error
       }
 
-      // a timeout of 0 means no return message is expected.
-      if (timeout !== 0) {
-        const timer = setTimeout(reqTimeoutScheduler, timeout, augData, onTimeout)
+      try{
+        // a timeout of 0 means no return message is expected.
+        if (timeout !== 0) {
+          const timer = setTimeout(reqTimeoutScheduler, timeout, augData, onTimeout)
 
-        // this is where we bind the response callback to the UUID
-        // later extractUUIDHandleData will call this callback if it
-        // finds a UUID match.
-        responseUUIDMapping[augData.UUID] = {
-          callback: (data: unknown, appHeader?: AppHeader, sign?: Sign) => {
-            clearTimeout(timer)
-            onResponse(data, appHeader, sign)
-          },
-          timestamp: Date.now(),
-        }
+          // this is where we bind the response callback to the UUID
+          // later extractUUIDHandleData will call this callback if it
+          // finds a UUID match.
+          responseUUIDMapping[augData.UUID] = {
+            callback: (data: unknown, appHeader?: AppHeader, sign?: Sign) => {
+              clearTimeout(timer)
+              onResponse(data, appHeader, sign)
+            },
+            timestamp: Date.now(),
+          }
+      }} catch (error) {
+        resolve({ success: false, error: 'error caught in _sendAug 2' });
       }
     })
   }
