@@ -150,7 +150,7 @@ export const Sn = (opts: SnOpts) => {
           : null
         /* prettier-ignore */ if(logFlags.net_verbose) logMessageInfo(augData, stringifiedData)
 
-        const sendCallback = (error) => {
+        const sendCallbackMk2 = (error) => {
           if (error) {
             resolve({ success: false, error })
           } else {
@@ -169,7 +169,7 @@ export const Sn = (opts: SnOpts) => {
               optionalHeader.version,
               stringifiedHeader,
               stringifiedData,
-              sendCallback,
+              sendCallbackMk2,
               awaitProcessing
             )
           } else {
@@ -180,12 +180,12 @@ export const Sn = (opts: SnOpts) => {
               optionalHeader.version,
               stringifiedHeader,
               stringifiedData,
-              sendCallback
+              sendCallbackMk2
             )
           }
         } else {
           /* prettier-ignore */ if(logFlags.net_verbose) console.log('sending without header')
-          _net.send(port, address, stringifiedData, sendCallback)
+          _net.send(port, address, stringifiedData, sendCallbackMk2)
         }
       } catch (error) {
         console.log('_sendAug - error sending from ts side of shardus-net', error)
@@ -196,8 +196,14 @@ export const Sn = (opts: SnOpts) => {
       try{
         // a timeout of 0 means no return message is expected.
         if (timeout !== 0) {
-          const timer = setTimeout(reqTimeoutScheduler, timeout, augData, onTimeout)
+          //const timer = setTimeout(reqTimeoutScheduler, timeout, augData, onTimeout)
 
+
+          const timer = setTimeout(() => {
+            reqTimeoutScheduler(augData, onTimeout);
+            resolve({ success: false, error: 'Request timed out 1' });  // Resolve the promise with a timeout error
+          }, timeout);
+          
           // this is where we bind the response callback to the UUID
           // later extractUUIDHandleData will call this callback if it
           // finds a UUID match.
@@ -208,8 +214,13 @@ export const Sn = (opts: SnOpts) => {
             },
             timestamp: Date.now(),
           }
-      }} catch (error) {
-        resolve({ success: false, error: 'error caught in _sendAug 2' });
+        } else {
+          const timer = setTimeout(() => {
+            resolve({ success: false, error: 'Request timed out 2' });  // Resolve the promise with a timeout error
+          }, 300 * 1000); // 5 minutes timeout for requests with no response expected
+        }
+      } catch (error) {
+          resolve({ success: false, error: 'error caught in _sendAug 2' });
       }
     })
   }
