@@ -122,7 +122,14 @@ impl ShardusNetSender {
                 };
 
                 RUNTIME.spawn(async move {
-                    let result = connection.send(data).await;
+                    let timeout_duration = tokio::time::Duration::from_secs(3);
+                    let result = match tokio::time::timeout(timeout_duration, connection.send(data)).await {
+                        Ok(result) => result,
+                        Err(_) => {
+                            let error = std::io::Error::new(std::io::ErrorKind::TimedOut, "Send timed out");
+                            Err(SenderError::SendFailedError(error, address))
+                        }
+                    };
                     complete_tx.send(result).ok();
                 });
             }
