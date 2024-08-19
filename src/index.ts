@@ -143,20 +143,12 @@ export const Sn = (opts: SnOpts) => {
   ) => {
     return new Promise<{ success: boolean; error?: string }>((resolve, reject) => {
       //must have everything covered by try catch so we can resolve a promise and not leak mem
-      try {      
+      try {
         const stringifiedData = jsonStringify(augData, opts.customStringifier)
         const stringifiedHeader = optionalHeader
           ? jsonStringify(optionalHeader.headerData, opts.customStringifier)
           : null
         /* prettier-ignore */ if(logFlags.net_verbose) logMessageInfo(augData, stringifiedData)
-
-        const sendCallbackMk2 = (error) => {
-          if (error) {
-            resolve({ success: false, error })
-          } else {
-            resolve({ success: true })
-          }
-        }
 
         if (optionalHeader && stringifiedHeader !== null) {
           /* prettier-ignore */ if(logFlags.net_verbose) console.log('sending with header')
@@ -169,41 +161,33 @@ export const Sn = (opts: SnOpts) => {
               optionalHeader.version,
               stringifiedHeader,
               stringifiedData,
-              sendCallbackMk2,
               awaitProcessing
             )
           } else {
             if (logFlags.net_verbose) console.log('send_with_header')
-            _net.send_with_header(
-              port,
-              address,
-              optionalHeader.version,
-              stringifiedHeader,
-              stringifiedData,
-              sendCallbackMk2
-            )
+            _net.send_with_header(port, address, optionalHeader.version, stringifiedHeader, stringifiedData)
           }
         } else {
           /* prettier-ignore */ if(logFlags.net_verbose) console.log('sending without header')
-          _net.send(port, address, stringifiedData, sendCallbackMk2)
+          _net.send(port, address, stringifiedData)
         }
+        resolve({ success: true })
       } catch (error) {
         console.log('_sendAug - error sending from ts side of shardus-net', error)
-        resolve({ success: false, error: 'error caught in _sendAug 1' });
+        resolve({ success: false, error: 'error caught in _sendAug 1' })
         throw error
       }
 
-      try{
+      try {
         // a timeout of 0 means no return message is expected.
         if (timeout !== 0) {
           //const timer = setTimeout(reqTimeoutScheduler, timeout, augData, onTimeout)
 
-
           const timer = setTimeout(() => {
-            reqTimeoutScheduler(augData, onTimeout);
-            resolve({ success: false, error: 'Request timed out 1' });  // Resolve the promise with a timeout error
-          }, timeout);
-          
+            reqTimeoutScheduler(augData, onTimeout)
+            resolve({ success: false, error: 'Request timed out 1' }) // Resolve the promise with a timeout error
+          }, timeout)
+
           // this is where we bind the response callback to the UUID
           // later extractUUIDHandleData will call this callback if it
           // finds a UUID match.
@@ -216,11 +200,11 @@ export const Sn = (opts: SnOpts) => {
           }
         } else {
           const timer = setTimeout(() => {
-            resolve({ success: false, error: 'Request timed out 2' });  // Resolve the promise with a timeout error
-          }, 300 * 1000); // 5 minutes timeout for requests with no response expected
+            resolve({ success: false, error: 'Request timed out 2' }) // Resolve the promise with a timeout error
+          }, 300 * 1000) // 5 minutes timeout for requests with no response expected
         }
       } catch (error) {
-          resolve({ success: false, error: 'error caught in _sendAug 2' });
+        resolve({ success: false, error: 'error caught in _sendAug 2' })
       }
     })
   }

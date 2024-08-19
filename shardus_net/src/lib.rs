@@ -8,6 +8,7 @@ use std::time::Instant;
 use std::{net::ToSocketAddrs, sync::Arc};
 
 use header_factory::header_from_json_string;
+use log::error;
 #[cfg(debug)]
 use log::info;
 //use log::LevelFilter;
@@ -170,7 +171,6 @@ fn send(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let port = cx.argument::<JsNumber>(0)?.value(cx);
     let host = cx.argument::<JsString>(1)?.value(cx);
     let data = cx.argument::<JsString>(2)?.value(cx);
-    let complete_cb = cx.argument::<JsFunction>(3)?.root(cx);
     let shardus_net_sender = cx.this().get::<JsBox<Arc<ShardusNetSender>>, _, _>(cx, "_sender")?;
     let stats_incrementers = cx.this().get::<JsBox<Incrementers>, _, _>(cx, "_stats_incrementers")?;
 
@@ -189,13 +189,8 @@ fn send(mut cx: FunctionContext) -> JsResult<JsUndefined> {
                 let stats = this.to_inner(cx).get::<JsBox<RefCell<Stats>>, _, _>(cx, "_stats")?;
                 (**stats).borrow_mut().decrement_outstanding_sends();
 
-                let this = cx.undefined();
-
                 if let Err(err) = result {
-                    let error = cx.string(format!("{:?}", err));
-                    complete_cb.to_inner(cx).call(cx, this, [error.upcast()])?;
-                } else {
-                    complete_cb.to_inner(cx).call(cx, this, [])?;
+                    error!("send: error: {:?}", err);
                 }
 
                 Ok(())
@@ -221,7 +216,6 @@ pub fn send_with_header(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let header_version: u8 = cx.argument::<JsNumber>(2)?.value(cx) as u8;
     let header_js_string: String = cx.argument::<JsString>(3)?.value(cx) as String;
     let data_js_string: String = cx.argument::<JsString>(4)?.value(cx) as String;
-    let complete_cb = cx.argument::<JsFunction>(5)?.root(cx);
 
     let shardus_net_sender = cx.this().get::<JsBox<Arc<ShardusNetSender>>, _, _>(cx, "_sender")?;
     let stats_incrementers = cx.this().get::<JsBox<Incrementers>, _, _>(cx, "_stats_incrementers")?;
@@ -251,13 +245,8 @@ pub fn send_with_header(mut cx: FunctionContext) -> JsResult<JsUndefined> {
                 let stats = this.to_inner(cx).get::<JsBox<RefCell<Stats>>, _, _>(cx, "_stats")?;
                 (**stats).borrow_mut().decrement_outstanding_sends();
 
-                let this = cx.undefined();
-
                 if let Err(err) = result {
-                    let error = cx.string(format!("{:?}", err));
-                    complete_cb.to_inner(cx).call(cx, this, [error.upcast()])?;
-                } else {
-                    complete_cb.to_inner(cx).call(cx, this, [])?;
+                    error!("send_with_header: error: {:?}", err);
                 }
 
                 Ok(())
@@ -299,7 +288,6 @@ pub fn multi_send_with_header(mut cx: FunctionContext) -> JsResult<JsUndefined> 
     let header_version: u8 = cx.argument::<JsNumber>(2)?.value(cx) as u8;
     let header_js_string: String = cx.argument::<JsString>(3)?.value(cx) as String;
     let data_js_string: String = cx.argument::<JsString>(4)?.value(cx) as String;
-    let complete_cb = cx.argument::<JsFunction>(5)?.root(cx);
     let await_processing = cx.argument::<JsBoolean>(6)?.value(cx); // this flag lets us skip the processing on the stats and the callback
 
     let shardus_net_sender = cx.this().get::<JsBox<Arc<ShardusNetSender>>, _, _>(cx, "_sender")?;
@@ -333,13 +321,11 @@ pub fn multi_send_with_header(mut cx: FunctionContext) -> JsResult<JsUndefined> 
         receivers.push(receiver);
     }
 
-    let complete_cb = Arc::new(complete_cb);
     let this = Arc::new(this);
 
     // Handle the responses asynchronously
     for receiver in receivers {
         let channel = channel.clone();
-        let complete_cb = complete_cb.clone();
         let this = this.clone();
 
         RUNTIME.spawn(async move {
@@ -352,13 +338,8 @@ pub fn multi_send_with_header(mut cx: FunctionContext) -> JsResult<JsUndefined> 
                         let stats = this.to_inner(cx).get::<JsBox<RefCell<Stats>>, _, _>(cx, "_stats")?;
                         (**stats).borrow_mut().decrement_outstanding_sends();
 
-                        let this = cx.undefined();
-
                         if let Err(err) = result {
-                            let error = cx.string(format!("{:?}", err));
-                            complete_cb.to_inner(cx).call(cx, this, [error.upcast()])?;
-                        } else {
-                            complete_cb.to_inner(cx).call(cx, this, [])?;
+                            error!("multi_send_with_header: error: {:?}", err);
                         }
 
                         Ok(())
