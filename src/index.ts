@@ -150,7 +150,7 @@ export const Sn = (opts: SnOpts) => {
           : null
         /* prettier-ignore */ if(logFlags.net_verbose) logMessageInfo(augData, stringifiedData)
 
-        const sendCallbackMk2 = (error) => {
+        const sendCallbackMk3 = (error) => {
           if (error) {
             resolve({ success: false, error })
           } else {
@@ -169,7 +169,7 @@ export const Sn = (opts: SnOpts) => {
               optionalHeader.version,
               stringifiedHeader,
               stringifiedData,
-              sendCallbackMk2,
+              sendCallbackMk3,
               awaitProcessing
             )
           } else {
@@ -180,12 +180,12 @@ export const Sn = (opts: SnOpts) => {
               optionalHeader.version,
               stringifiedHeader,
               stringifiedData,
-              sendCallbackMk2
+              sendCallbackMk3
             )
           }
         } else {
           /* prettier-ignore */ if(logFlags.net_verbose) console.log('sending without header')
-          _net.send(port, address, stringifiedData, sendCallbackMk2)
+          _net.send(port, address, stringifiedData, sendCallbackMk3)
         }
       } catch (error) {
         console.log('_sendAug - error sending from ts side of shardus-net', error)
