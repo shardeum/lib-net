@@ -50,7 +50,7 @@
     "James Harmon"
   ],
   "engines": {
-    "node": "18.16.1"
+    "node": "18.19.1"
   },
   "dependencies": {
     "cargo-cp-artifact": "0.1",
@@ -59,7 +59,7 @@
   "devDependencies": {
     "@ethereumjs/tx": "^5.1.0",
     "@ethereumjs/util": "^9.0.1",
-    "@types/node": "18.16.1",
+    "@types/node": "18.19.1",
     "@types/uuid": "7.0.0",
     "@typescript-eslint/eslint-plugin": "5.57.0",
     "@typescript-eslint/parser": "5.57.0",
