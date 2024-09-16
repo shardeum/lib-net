@@ -10,6 +10,7 @@ const TARGET_SOCKET_PORT = 49152 // Internal port of the validator to be bombard
 const MESSAGE_JSON = { route: 'bombardment-test', payload: 'Hello, world!' } // Message to be sent to the validator
 const RAMP_UP_STRATEGY: 'linear' | 'none' = 'none' // Ramp up strategy to be used for the bombardment
 const RAMP_UP_EVERY_X_BOMBS = 10 // Number of bombs to be sent before ramping up the number of socket clients
+const PAYLOAD_SIZE_LIMIT = 2 * 1024 * 1024 // Payload size limit in bytes
 
 // Test variables
 
@@ -33,6 +34,7 @@ function setupSocketClients() {
             'c3774b92cc8850fb4026b073081290b82cab3c0f66cac250b4d710ee9aaf83ed8088b37f6f458104515ae18c2a05bde890199322f62ab5114d20c77bde5e6c9d',
           hashKey: '69fa4195670576c0160d660c3be36556ff8d504725be8a59b5a96509e0c994bc',
         },
+        payloadSizeLimitInBytes: PAYLOAD_SIZE_LIMIT,
       })
     )
   }

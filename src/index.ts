@@ -49,12 +49,21 @@ export const Sn = (opts: SnOpts) => {
   const LRU_SIZE = (opts.senderOpts && opts.senderOpts.lruSize) || 1028
   const HASH_KEY = opts.crypto.hashKey
   const SIGNING_SECRET_KEY_HEX = opts.crypto.signingSecretKeyHex
+  const PAYLOAD_SIZE_LIMIT = opts.payloadSizeLimitInBytes || 2 * 1024 * 1024 // 2MB
 
   const HEADER_OPTS = opts.headerOpts || {
     sendHeaderVersion: 0,
   }
 
-  const _net = net.Sn(PORT, ADDRESS, USE_LRU_CACHE, LRU_SIZE, HASH_KEY, SIGNING_SECRET_KEY_HEX)
+  const _net = net.Sn(
+    PORT,
+    ADDRESS,
+    USE_LRU_CACHE,
+    LRU_SIZE,
+    HASH_KEY,
+    SIGNING_SECRET_KEY_HEX,
+    PAYLOAD_SIZE_LIMIT
+  )
 
   net.setLoggingEnabled(false)
 

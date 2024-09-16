@@ -1,7 +1,7 @@
 use crate::header::header_types::RequestMetadata;
 use crate::header_factory::header_deserialize_factory;
 use crate::message::Message;
-use crate::{shardus_crypto, HEADER_SIZE_LIMIT_IN_BYTES, PAYLOAD_SIZE_LIMIT_IN_BYTES};
+use crate::{shardus_crypto, HEADER_SIZE_LIMIT_IN_BYTES};
 
 use super::runtime::RUNTIME;
 
@@ -18,6 +18,7 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 pub struct ShardusNetListener {
     address: SocketAddr,
+    payload_size_limit: usize,
 }
 
 #[derive(Error, Debug)]
@@ -34,31 +35,31 @@ pub enum ListenerError {
 type ListenerResult<T> = Result<T, ListenerError>;
 
 impl ShardusNetListener {
-    pub fn new<A: ToSocketAddrs>(address: A) -> Result<Self, ()> {
+    pub fn new<A: ToSocketAddrs>(address: A, payload_size_limit: usize) -> Result<Self, ()> {
         let mut addresses = address.to_socket_addrs().map_err(|_| ())?;
         let address = addresses.next().ok_or(())?;
 
-        Ok(Self { address })
+        Ok(Self { address, payload_size_limit })
     }
 
     pub fn listen(&self) -> UnboundedReceiver<(String, SocketAddr, Option<RequestMetadata>)> {
-        Self::spawn_listener(self.address)
+        Self::spawn_listener(self.address, self.payload_size_limit)
     }
 
-    fn spawn_listener(address: SocketAddr) -> UnboundedReceiver<(String, SocketAddr, Option<RequestMetadata>)> {
+    fn spawn_listener(address: SocketAddr, payload_size_limit: usize) -> UnboundedReceiver<(String, SocketAddr, Option<RequestMetadata>)> {
         let (tx, rx) = unbounded_channel();
-        RUNTIME.spawn(Self::bind_to_socket(address, tx));
+        RUNTIME.spawn(Self::bind_to_socket(address, tx, payload_size_limit));
         rx
     }
 
-    async fn bind_to_socket(address: SocketAddr, tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>) {
+    async fn bind_to_socket(address: SocketAddr, tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>, payload_size_limit: usize) {
         loop {
             let listener = TcpListener::bind(address).await;
 
             match listener {
                 Ok(listener) => {
                     let tx = tx.clone();
-                    match Self::accept_connections(listener, tx).await {
+                    match Self::accept_connections(listener, tx, payload_size_limit).await {
                         Ok(_) => unreachable!(),
                         Err(err) => {
                             error!("Failed to accept connection to {} due to {}", address, err)
@@ -72,13 +73,13 @@ impl ShardusNetListener {
         }
     }
 
-    async fn accept_connections(listener: TcpListener, received_msg_tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>) -> std::io::Result<()> {
+    async fn accept_connections(listener: TcpListener, received_msg_tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>, payload_size_limit: usize) -> std::io::Result<()> {
         loop {
             let (socket, remote_addr) = listener.accept().await?;
             let received_msg_tx = received_msg_tx.clone();
 
             RUNTIME.spawn(async move {
-                let result = Self::receive(socket, remote_addr, received_msg_tx).await;
+                let result = Self::receive(socket, remote_addr, received_msg_tx, payload_size_limit).await;
                 match result {
                     Ok(_) => info!("Connection safely completed and shutdown with {}", remote_addr),
                     Err(err) => {
@@ -89,11 +90,16 @@ impl ShardusNetListener {
         }
     }
 
-    async fn receive(socket_stream: TcpStream, remote_addr: SocketAddr, received_msg_tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>) -> ListenerResult<()> {
+    async fn receive(
+        socket_stream: TcpStream,
+        remote_addr: SocketAddr,
+        received_msg_tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>,
+        payload_size_limit: usize,
+    ) -> ListenerResult<()> {
         let mut socket_stream: TcpStream = socket_stream;
         while let Ok(msg_len) = socket_stream.read_u32().await {
-            if (msg_len as usize) > PAYLOAD_SIZE_LIMIT_IN_BYTES {
-                error!("Message length exceeds the limit of 2MB");
+            if (msg_len as usize) > payload_size_limit {
+                error!("Message length exceeds the limit of {} bytes", payload_size_limit);
                 continue;
             }
 

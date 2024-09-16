@@ -60,6 +60,7 @@ export type SnOpts = {
     hashKey: string
     signingSecretKeyHex: string
   }
+  payloadSizeLimitInBytes?: number
 }
 
 /**
