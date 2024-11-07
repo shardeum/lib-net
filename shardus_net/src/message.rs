@@ -3,6 +3,8 @@ use std::io::{Cursor, Read, Write};
 use crypto::Format::Buffer;
 use crypto::{KeyPair, ShardusCrypto};
 
+use crate::BUFFER_SIZE_LIMIT_IN_BYTES;
+use log::error;
 #[derive(Debug)]
 pub struct Message {
     pub header_version: u8,
@@ -93,6 +95,10 @@ impl Message {
         let mut header_len_bytes = [0u8; 4];
         cursor.read_exact(&mut header_len_bytes).ok()?;
         let header_len = u32::from_le_bytes(header_len_bytes);
+        if header_len > BUFFER_SIZE_LIMIT_IN_BYTES {
+            error!("Header exceeds the limit of {} bytes", BUFFER_SIZE_LIMIT_IN_BYTES);
+            return None;
+        }
         let mut header_bytes = vec![0u8; header_len as usize];
         cursor.read_exact(&mut header_bytes).ok()?;
         let header = header_bytes;
@@ -101,6 +107,10 @@ impl Message {
         let mut data_len_bytes = [0u8; 4];
         cursor.read_exact(&mut data_len_bytes).ok()?;
         let data_len = u32::from_le_bytes(data_len_bytes);
+        if data_len > BUFFER_SIZE_LIMIT_IN_BYTES {
+            error!("Data length exceeds the limit of {} bytes", BUFFER_SIZE_LIMIT_IN_BYTES);
+            return None;
+        }
         let mut data_bytes = vec![0u8; data_len as usize];
         cursor.read_exact(&mut data_bytes).ok()?;
         let data = data_bytes;
@@ -140,6 +150,10 @@ impl Sign {
         let mut owner_len_bytes = [0u8; 4];
         cursor.read_exact(&mut owner_len_bytes).ok()?;
         let owner_len = u32::from_le_bytes(owner_len_bytes);
+        if owner_len > BUFFER_SIZE_LIMIT_IN_BYTES {
+            error!("Owner length exceeds the limit of {} bytes", BUFFER_SIZE_LIMIT_IN_BYTES);
+            return None;
+        }
         let mut owner_bytes = vec![0u8; owner_len as usize];
         cursor.read_exact(&mut owner_bytes).ok()?;
         let owner = owner_bytes;
@@ -148,6 +162,10 @@ impl Sign {
         let mut signature_len_bytes = [0u8; 4];
         cursor.read_exact(&mut signature_len_bytes).ok()?;
         let signature_len = u32::from_le_bytes(signature_len_bytes);
+        if signature_len > BUFFER_SIZE_LIMIT_IN_BYTES {
+            error!("Signature length exceeds the limit of {} bytes", BUFFER_SIZE_LIMIT_IN_BYTES);
+            return None;
+        }
         let mut signature_bytes = vec![0u8; signature_len as usize];
         cursor.read_exact(&mut signature_bytes).ok()?;
         let signature = signature_bytes;

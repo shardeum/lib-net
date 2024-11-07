@@ -6,6 +6,9 @@ extern crate serde_json;
 use crate::compression::Compression;
 use serde::Deserialize;
 
+use crate::BUFFER_SIZE_LIMIT_IN_BYTES;
+use log::error;
+
 #[derive(Deserialize)]
 pub struct HeaderV1 {
     pub uuid: Uuid,
@@ -72,7 +75,10 @@ impl HeaderV1 {
         let mut sender_id_len_bytes = [0u8; 4];
         cursor.read_exact(&mut sender_id_len_bytes).ok()?;
         let sender_id_len = u32::from_le_bytes(sender_id_len_bytes);
-
+        if sender_id_len > BUFFER_SIZE_LIMIT_IN_BYTES {
+            error!("Sender id size exceeds the limit of {} bytes", BUFFER_SIZE_LIMIT_IN_BYTES);
+            return None;
+        }
         let mut sender_id_bytes = vec![0u8; sender_id_len as usize];
         cursor.read_exact(&mut sender_id_bytes).ok()?;
         let sender_id = String::from_utf8(sender_id_bytes).ok()?;
@@ -81,7 +87,10 @@ impl HeaderV1 {
         let mut tracker_id_len_bytes = [0u8; 4];
         cursor.read_exact(&mut tracker_id_len_bytes).ok()?;
         let tracker_id_len = u32::from_le_bytes(tracker_id_len_bytes);
-
+        if tracker_id_len > BUFFER_SIZE_LIMIT_IN_BYTES {
+            error!("Tracker id size exceeds the limit of {} bytes", BUFFER_SIZE_LIMIT_IN_BYTES);
+            return None;
+        }
         let mut tracker_id_bytes = vec![0u8; tracker_id_len as usize];
         cursor.read_exact(&mut tracker_id_bytes).ok()?;
         let tracker_id = String::from_utf8(tracker_id_bytes).ok()?;
@@ -90,7 +99,10 @@ impl HeaderV1 {
         let mut verification_data_len_bytes = [0u8; 4];
         cursor.read_exact(&mut verification_data_len_bytes).ok()?;
         let verification_data_len = u32::from_le_bytes(verification_data_len_bytes);
-
+        if verification_data_len > BUFFER_SIZE_LIMIT_IN_BYTES {
+            error!("Verification Data exceeds the limit of {} bytes", BUFFER_SIZE_LIMIT_IN_BYTES);
+            return None;
+        }
         let mut verification_data_bytes = vec![0u8; verification_data_len as usize];
         cursor.read_exact(&mut verification_data_bytes).ok()?;
         let verification_data = String::from_utf8(verification_data_bytes).ok()?;
