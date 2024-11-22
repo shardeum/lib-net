@@ -40,6 +40,8 @@ use crate::shardus_net_sender::Connection;
 const ENABLE_COMPRESSION: bool = false;
 const HEADER_SIZE_LIMIT_IN_BYTES: usize = 2 * 1024; // 2KB
 const PAYLOAD_SIZE_LIMIT_IN_BYTES: usize = 2 * 1024 * 1024; // 2MB
+const SIGNATURE_SIZE_LIMIT_IN_BYTES: usize = 96;
+const OWNER_SIZE_LIMIT_IN_BYTES: usize = 32;
 
 fn create_shardus_net(mut cx: FunctionContext) -> JsResult<JsObject> {
     let cx = &mut cx;

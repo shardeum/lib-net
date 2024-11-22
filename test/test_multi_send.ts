@@ -74,7 +74,7 @@ const main = async () => {
       }
       const baseAddress = '127.0.0.1'
       const addresses = Array(count).fill(baseAddress)
-      let message = inputs[2].repeat(500000)
+      let message = inputs[2].repeat(5)
 
       await sn.multiSendWithHeader(
         ports,
