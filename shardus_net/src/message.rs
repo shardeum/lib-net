@@ -1,6 +1,6 @@
 use std::io::{Cursor, Read, Write};
 
-use crate:: {HEADER_SIZE_LIMIT_IN_BYTES , PAYLOAD_SIZE_LIMIT_IN_BYTES, check_variable_size};
+use crate::{check_variable_size, HEADER_SIZE_LIMIT_IN_BYTES, OWNER_SIZE_LIMIT_IN_BYTES, PAYLOAD_SIZE_LIMIT_IN_BYTES, SIGNATURE_SIZE_LIMIT_IN_BYTES};
 use crypto::Format::Buffer;
 use crypto::{KeyPair, ShardusCrypto};
 
@@ -94,7 +94,7 @@ impl Message {
         let mut header_len_bytes = [0u8; 4];
         cursor.read_exact(&mut header_len_bytes).ok()?;
         let header_len = u32::from_le_bytes(header_len_bytes);
-        check_variable_size( header_len, HEADER_SIZE_LIMIT_IN_BYTES);
+        check_variable_size(header_len, HEADER_SIZE_LIMIT_IN_BYTES);
         let mut header_bytes = vec![0u8; header_len as usize];
         cursor.read_exact(&mut header_bytes).ok()?;
         let header = header_bytes;
@@ -103,7 +103,7 @@ impl Message {
         let mut data_len_bytes = [0u8; 4];
         cursor.read_exact(&mut data_len_bytes).ok()?;
         let data_len = u32::from_le_bytes(data_len_bytes);
-        check_variable_size( data_len, PAYLOAD_SIZE_LIMIT_IN_BYTES);
+        check_variable_size(data_len, PAYLOAD_SIZE_LIMIT_IN_BYTES);
         let mut data_bytes = vec![0u8; data_len as usize];
         cursor.read_exact(&mut data_bytes).ok()?;
         let data = data_bytes;
@@ -143,7 +143,7 @@ impl Sign {
         let mut owner_len_bytes = [0u8; 4];
         cursor.read_exact(&mut owner_len_bytes).ok()?;
         let owner_len = u32::from_le_bytes(owner_len_bytes);
-        check_variable_size( owner_len, PAYLOAD_SIZE_LIMIT_IN_BYTES);
+        check_variable_size(owner_len, OWNER_SIZE_LIMIT_IN_BYTES);
         let mut owner_bytes = vec![0u8; owner_len as usize];
         cursor.read_exact(&mut owner_bytes).ok()?;
         let owner = owner_bytes;
@@ -152,7 +152,7 @@ impl Sign {
         let mut signature_len_bytes = [0u8; 4];
         cursor.read_exact(&mut signature_len_bytes).ok()?;
         let signature_len = u32::from_le_bytes(signature_len_bytes);
-        check_variable_size( signature_len, PAYLOAD_SIZE_LIMIT_IN_BYTES);
+        check_variable_size(signature_len, SIGNATURE_SIZE_LIMIT_IN_BYTES);
         let mut signature_bytes = vec![0u8; signature_len as usize];
         cursor.read_exact(&mut signature_bytes).ok()?;
         let signature = signature_bytes;
@@ -185,42 +185,42 @@ mod tests {
     }
 
     #[test]
-        fn test_serialize_deserialize_sign() {
-            let sign = Sign {
-                owner: vec![0x12, 0x34, 0x56, 0x78],
-                sig: vec![0x9a, 0xbc, 0xde, 0xf0],
-            };
+    fn test_serialize_deserialize_sign() {
+        let sign = Sign {
+            owner: vec![0x12, 0x34, 0x56, 0x78],
+            sig: vec![0x9a, 0xbc, 0xde, 0xf0],
+        };
 
-            let serialized = sign.serialize();
-            let mut cursor = Cursor::new(serialized);
-            let deserialized = Sign::deserialize(&mut cursor).unwrap();
+        let serialized = sign.serialize();
+        let mut cursor = Cursor::new(serialized);
+        let deserialized = Sign::deserialize(&mut cursor).unwrap();
 
-            assert_eq!(sign.owner, deserialized.owner);
-            assert_eq!(sign.sig, deserialized.sig);
-        }
+        assert_eq!(sign.owner, deserialized.owner);
+        assert_eq!(sign.sig, deserialized.sig);
+    }
 
-        #[test]
-        fn test_serialize_deserialize_message() {
-            let sign = Sign {
-                owner: vec![0x12, 0x34, 0x56, 0x78],
-                sig: vec![0x9a, 0xbc, 0xde, 0xf0],
-            };
+    #[test]
+    fn test_serialize_deserialize_message() {
+        let sign = Sign {
+            owner: vec![0x12, 0x34, 0x56, 0x78],
+            sig: vec![0x9a, 0xbc, 0xde, 0xf0],
+        };
 
-            let message = Message {
-                header_version: 1,
-                header: vec![0x01, 0x02, 0x03, 0x04],
-                data: vec![0x05, 0x06, 0x07, 0x08],
-                sign,
-            };
+        let message = Message {
+            header_version: 1,
+            header: vec![0x01, 0x02, 0x03, 0x04],
+            data: vec![0x05, 0x06, 0x07, 0x08],
+            sign,
+        };
 
-            let serialized = message.serialize();
-            let mut cursor = Cursor::new(serialized);
-            let deserialized = Message::deserialize(&mut cursor).unwrap();
+        let serialized = message.serialize();
+        let mut cursor = Cursor::new(serialized);
+        let deserialized = Message::deserialize(&mut cursor).unwrap();
 
-            assert_eq!(message.header_version, deserialized.header_version);
-            assert_eq!(message.header, deserialized.header);
-            assert_eq!(message.data, deserialized.data);
-            assert_eq!(message.sign.owner, deserialized.sign.owner);
-            assert_eq!(message.sign.sig, deserialized.sign.sig);
-        }
+        assert_eq!(message.header_version, deserialized.header_version);
+        assert_eq!(message.header, deserialized.header);
+        assert_eq!(message.data, deserialized.data);
+        assert_eq!(message.sign.owner, deserialized.sign.owner);
+        assert_eq!(message.sign.sig, deserialized.sign.sig);
+    }
 }
