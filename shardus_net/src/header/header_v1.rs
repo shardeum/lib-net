@@ -74,7 +74,7 @@ impl HeaderV1 {
         let mut sender_id_len_bytes = [0u8; 4];
         cursor.read_exact(&mut sender_id_len_bytes).ok()?;
         let sender_id_len = u32::from_le_bytes(sender_id_len_bytes);
-        check_variable_size(sender_id_len, HEADER_SIZE_LIMIT_IN_BYTES);
+        check_variable_size(sender_id_len, 64);
         let mut sender_id_bytes = vec![0u8; sender_id_len as usize];
         cursor.read_exact(&mut sender_id_bytes).ok()?;
         let sender_id = String::from_utf8(sender_id_bytes).ok()?;
@@ -195,23 +195,22 @@ mod tests {
     #[should_panic(expected = "variable_len exceeds the limit")]
     fn test_check_variable_size_panic() {
         use crate::HEADER_SIZE_LIMIT_IN_BYTES;
-    
+
         // Define a variable length that exceeds the limit
         let oversized_length = HEADER_SIZE_LIMIT_IN_BYTES as u32 + 1;
-    
+
         // Call the function, expecting it to panic
         check_variable_size(oversized_length, HEADER_SIZE_LIMIT_IN_BYTES);
     }
-    
+
     #[test]
     fn test_check_variable_size_no_panic() {
         use crate::HEADER_SIZE_LIMIT_IN_BYTES;
-    
+
         // Define a variable length within the limit : 2048 (0x800)
-        let valid_length = 0x799; 
-    
+        let valid_length = 0x799;
+
         // Call the function, ensuring it does not panic
         check_variable_size(valid_length, HEADER_SIZE_LIMIT_IN_BYTES);
     }
-    
 }

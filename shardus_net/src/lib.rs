@@ -582,7 +582,7 @@ fn get_sender_address(mut cx: FunctionContext) -> JsResult<JsObject> {
 
 fn check_variable_size(variable_len: u32, buffer_size_limit: usize) {
     if variable_len as usize > buffer_size_limit {
-        panic!("variable_len exceeds the limit of {} bytes", buffer_size_limit);
+        panic!("variable_len : {} exceeds the limit of {} bytes", variable_len, buffer_size_limit);
     }
     // Continue with the flow if the variable is under the limit
 }

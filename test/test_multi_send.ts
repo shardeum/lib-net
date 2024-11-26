@@ -74,7 +74,7 @@ const main = async () => {
       }
       const baseAddress = '127.0.0.1'
       const addresses = Array(count).fill(baseAddress)
-      let message = inputs[2].repeat(5)
+      let message = inputs[2]
 
       await sn.multiSendWithHeader(
         ports,
@@ -82,11 +82,11 @@ const main = async () => {
         { message, fromPort: +port },
         {
           compression: 'Brotli',
-          sender_id: 'x'.repeat(48),
+          sender_id: '19df3d34495874352d3540d5ef1074b2b8bb6b28a3f80278bb9c18172276ac57',
         },
         1000
       )
-      console.log('Message sent')
+      console.log('Message sent', message)
     } else if (inputs.length === 2) {
       sn.evictSocket(+inputs[1], '127.0.0.1')
       console.log('Cache cleared')
