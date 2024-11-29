@@ -62,8 +62,6 @@ export type SnOpts = {
   }
   payloadSizeLimitInBytes?: number
   headerSizeLimitInBytes?: number
-  signatureSizeLimitInBytes?: number
-  ownerSizeLimitInBytes?: number
 }
 
 /**
@@ -91,14 +89,6 @@ export const validateSnOpts = (opts: SnOpts): void => {
     {
       condition: opts.headerSizeLimitInBytes && typeof opts.headerSizeLimitInBytes !== 'number',
       message: 'snq: headerSizeLimitInBytes must be a number',
-    },
-    {
-      condition: opts.signatureSizeLimitInBytes && typeof opts.signatureSizeLimitInBytes !== 'number',
-      message: 'snq: signatureSizeLimitInBytes must be a number',
-    },
-    {
-      condition: opts.ownerSizeLimitInBytes && typeof opts.ownerSizeLimitInBytes !== 'number',
-      message: 'snq: ownerSizeLimitInBytes must be a number',
     },
   ]
 

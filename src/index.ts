@@ -51,8 +51,6 @@ export const Sn = (opts: SnOpts) => {
   const SIGNING_SECRET_KEY_HEX = opts.crypto.signingSecretKeyHex
   const PAYLOAD_SIZE_LIMIT = opts.payloadSizeLimitInBytes || 2 * 1024 * 1024 // 2MB
   const HEADER_SIZE_LIMIT = opts.headerSizeLimitInBytes || 2 * 1024 // 2KB
-  const SIGNATURE_SIZE_LIMIT = opts.signatureSizeLimitInBytes || 96 // 96 bytes
-  const OWNER_SIZE_LIMIT = opts.ownerSizeLimitInBytes || 32 // 32 bytes
 
   const HEADER_OPTS = opts.headerOpts || {
     sendHeaderVersion: 0,
@@ -66,9 +64,7 @@ export const Sn = (opts: SnOpts) => {
     HASH_KEY,
     SIGNING_SECRET_KEY_HEX,
     PAYLOAD_SIZE_LIMIT,
-    HEADER_SIZE_LIMIT,
-    SIGNATURE_SIZE_LIMIT,
-    OWNER_SIZE_LIMIT
+    HEADER_SIZE_LIMIT
   )
 
   net.setLoggingEnabled(false)

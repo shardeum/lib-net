@@ -1,7 +1,7 @@
 use std::io::{Cursor, Read, Write};
 
-use crate::check_variable_size;
 use crate::NetConfig;
+use crate::{check_variable_size, OWNER_SIZE_LIMIT_IN_BYTES, SIGNATURE_SIZE_LIMIT_IN_BYTES};
 use crypto::Format::Buffer;
 use crypto::{KeyPair, ShardusCrypto};
 
@@ -111,7 +111,7 @@ impl Message {
         let data = data_bytes;
 
         // Deserialize sign
-        let sign = Sign::deserialize(cursor, net_config)?;
+        let sign = Sign::deserialize(cursor)?;
 
         Some(Message::new(header_version, header, data, sign))
     }
@@ -140,12 +140,12 @@ impl Sign {
         buffer
     }
 
-    pub fn deserialize(cursor: &mut Cursor<Vec<u8>>, net_config: NetConfig) -> Option<Sign> {
+    pub fn deserialize(cursor: &mut Cursor<Vec<u8>>) -> Option<Sign> {
         // Deserialize owner
         let mut owner_len_bytes = [0u8; 4];
         cursor.read_exact(&mut owner_len_bytes).ok()?;
         let owner_len = u32::from_le_bytes(owner_len_bytes);
-        check_variable_size(owner_len, net_config.owner_size_limit);
+        check_variable_size(owner_len, OWNER_SIZE_LIMIT_IN_BYTES);
         let mut owner_bytes = vec![0u8; owner_len as usize];
         cursor.read_exact(&mut owner_bytes).ok()?;
         let owner = owner_bytes;
@@ -154,7 +154,7 @@ impl Sign {
         let mut signature_len_bytes = [0u8; 4];
         cursor.read_exact(&mut signature_len_bytes).ok()?;
         let signature_len = u32::from_le_bytes(signature_len_bytes);
-        check_variable_size(signature_len, net_config.signature_size_limit);
+        check_variable_size(signature_len, SIGNATURE_SIZE_LIMIT_IN_BYTES);
         let mut signature_bytes = vec![0u8; signature_len as usize];
         cursor.read_exact(&mut signature_bytes).ok()?;
         let signature = signature_bytes;
@@ -194,13 +194,11 @@ mod tests {
         };
         let net_config = NetConfig {
             header_size_limit: 2 * 1024,
-            signature_size_limit: 96,
-            owner_size_limit: 32,
             payload_size_limit: 2 * 1024 * 1024,
         };
         let serialized = sign.serialize();
         let mut cursor = Cursor::new(serialized);
-        let deserialized = Sign::deserialize(&mut cursor, &net_config).unwrap();
+        let deserialized = Sign::deserialize(&mut cursor).unwrap();
 
         assert_eq!(sign.owner, deserialized.owner);
         assert_eq!(sign.sig, deserialized.sig);
@@ -222,8 +220,6 @@ mod tests {
 
         let net_config = NetConfig {
             header_size_limit: 2 * 1024,
-            signature_size_limit: 96,
-            owner_size_limit: 32,
             payload_size_limit: 2 * 1024 * 1024,
         };
         let serialized = message.serialize();

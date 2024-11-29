@@ -42,10 +42,10 @@ const ENABLE_COMPRESSION: bool = false;
 #[derive(Clone)]
 pub struct NetConfig {
     pub header_size_limit: usize,
-    pub signature_size_limit: usize,
-    pub owner_size_limit: usize,
     pub payload_size_limit: usize,
 }
+const SIGNATURE_SIZE_LIMIT_IN_BYTES: usize = 96;
+const OWNER_SIZE_LIMIT_IN_BYTES: usize = 32;
 
 fn create_shardus_net(mut cx: FunctionContext) -> JsResult<JsObject> {
     let cx = &mut cx;
@@ -59,13 +59,9 @@ fn create_shardus_net(mut cx: FunctionContext) -> JsResult<JsObject> {
     let hex_signing_sk = cx.argument::<JsString>(5)?.value(cx);
     let payload_size_limit = cx.argument::<JsNumber>(6)?.value(cx) as usize;
     let header_size_limit = cx.argument::<JsNumber>(7)?.value(cx) as usize;
-    let signature_size_limit = cx.argument::<JsNumber>(8)?.value(cx) as usize;
-    let owner_size_limit = cx.argument::<JsNumber>(9)?.value(cx) as usize;
 
     let net_config = NetConfig {
         header_size_limit,
-        signature_size_limit,
-        owner_size_limit,
         payload_size_limit,
     };
 
