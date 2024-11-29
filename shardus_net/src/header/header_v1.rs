@@ -150,8 +150,6 @@ mod tests {
         };
         let net_config = NetConfig {
             header_size_limit: 2 * 1024,
-            signature_size_limit: 96,
-            owner_size_limit: 32,
             payload_size_limit: 2 * 1024 * 1024,
         };
         let serialized = header.serialize();
@@ -203,8 +201,6 @@ mod tests {
     fn test_check_variable_size_panic() {
         let net_config = NetConfig {
             header_size_limit: 2 * 1024,
-            signature_size_limit: 96,
-            owner_size_limit: 32,
             payload_size_limit: 2 * 1024 * 1024,
         };
         // Define a variable length that exceeds the limit
@@ -218,8 +214,6 @@ mod tests {
     fn test_check_variable_size_no_panic() {
         let net_config = NetConfig {
             header_size_limit: 2 * 1024,
-            signature_size_limit: 96,
-            owner_size_limit: 32,
             payload_size_limit: 2 * 1024 * 1024,
         };
         // Define a variable length within the limit : 2048 (0x800)
