@@ -7,8 +7,6 @@ const setupLruSender = (
   limits: {
     payloadSize?: number
     headerSize?: number
-    signatureSize?: number
-    ownerSize?: number
   }
 ) => {
   return Sn({

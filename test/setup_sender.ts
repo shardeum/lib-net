@@ -2,7 +2,6 @@ import { Sn } from '../.'
 
 const RESPONSE_DELAY_MILLIS = 500
 const USE_LRU_CACHE = true
-const PAYLOAD_SIZE_LIMIT = 2 * 1024 * 1024
 
 const setupLruSender = () => {
   const port = 49152
