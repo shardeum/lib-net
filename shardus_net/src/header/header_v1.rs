@@ -24,6 +24,7 @@ pub struct HeaderV1 {
     pub compression: Compression,
 }
 
+const SENDER_ID_SIZE: usize = 64;
 impl HeaderV1 {
     // Serialize the struct into a Vec<u8>
     pub fn serialize(&self) -> Vec<u8> {
@@ -75,7 +76,7 @@ impl HeaderV1 {
         let mut sender_id_len_bytes = [0u8; 4];
         cursor.read_exact(&mut sender_id_len_bytes).ok()?;
         let sender_id_len = u32::from_le_bytes(sender_id_len_bytes);
-        check_variable_size(sender_id_len, 64);
+        check_variable_size(sender_id_len, SENDER_ID_SIZE);
         let mut sender_id_bytes = vec![0u8; sender_id_len as usize];
         cursor.read_exact(&mut sender_id_bytes).ok()?;
         let sender_id = String::from_utf8(sender_id_bytes).ok()?;
