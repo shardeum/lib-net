@@ -18,7 +18,6 @@ const setupLruSender = (port: number, lruSize: number) => {
     headerOpts: {
       sendHeaderVersion: 1,
     },
-    payloadSizeLimitInBytes: 3 * 1024 * 1024,
   })
 }
 

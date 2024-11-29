@@ -7,7 +7,6 @@ const port = 5001
 const sn = Sn({
   address,
   port,
-  payloadSizeLimitInBytes: 2 * 1024 * 1024,
 })
 
 const RESPONSE_DELAY_MILLIS = 1000
