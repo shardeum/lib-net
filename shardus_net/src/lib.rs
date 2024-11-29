@@ -38,10 +38,14 @@ use tokio::sync::Mutex;
 use crate::shardus_net_sender::Connection;
 
 const ENABLE_COMPRESSION: bool = false;
-const HEADER_SIZE_LIMIT_IN_BYTES: usize = 2 * 1024; // 2KB
-const PAYLOAD_SIZE_LIMIT_IN_BYTES: usize = 2 * 1024 * 1024; // 2MB
-const SIGNATURE_SIZE_LIMIT_IN_BYTES: usize = 96; // 96 bytes
-const OWNER_SIZE_LIMIT_IN_BYTES: usize = 32; // 32 bytes
+
+#[derive(Clone)]
+pub struct NetConfig {
+    pub header_size_limit: usize,
+    pub signature_size_limit: usize,
+    pub owner_size_limit: usize,
+    pub payload_size_limit: usize,
+}
 
 fn create_shardus_net(mut cx: FunctionContext) -> JsResult<JsObject> {
     let cx = &mut cx;
@@ -54,11 +58,21 @@ fn create_shardus_net(mut cx: FunctionContext) -> JsResult<JsObject> {
     let hash_key = cx.argument::<JsString>(4)?.value(cx);
     let hex_signing_sk = cx.argument::<JsString>(5)?.value(cx);
     let payload_size_limit = cx.argument::<JsNumber>(6)?.value(cx) as usize;
+    let header_size_limit = cx.argument::<JsNumber>(7)?.value(cx) as usize;
+    let signature_size_limit = cx.argument::<JsNumber>(8)?.value(cx) as usize;
+    let owner_size_limit = cx.argument::<JsNumber>(9)?.value(cx) as usize;
+
+    let net_config = NetConfig {
+        header_size_limit,
+        signature_size_limit,
+        owner_size_limit,
+        payload_size_limit,
+    };
 
     shardus_crypto::initialize_shardus_crypto_instance(&hash_key);
 
     let key_pair = shardus_crypto::get_shardus_crypto_instance().get_key_pair_using_sk(&crypto::HexStringOrBuffer::Hex(hex_signing_sk));
-    let shardus_net_listener = create_shardus_net_listener(cx, port, host, payload_size_limit)?;
+    let shardus_net_listener = create_shardus_net_listener(cx, port, host, net_config)?;
     let shardus_net_sender = create_shardus_net_sender(use_lru, NonZeroUsize::new(lru_size as usize).unwrap(), key_pair);
     let (stats, stats_incrementers) = Stats::new();
     let shardus_net_listener = cx.boxed(shardus_net_listener);
@@ -419,11 +433,11 @@ fn evict_socket(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     }
 }
 
-fn create_shardus_net_listener(cx: &mut FunctionContext, port: f64, host: String, payload_size_limit: usize) -> Result<Arc<ShardusNetListener>, Throw> {
+fn create_shardus_net_listener(cx: &mut FunctionContext, port: f64, host: String, net_config: NetConfig) -> Result<Arc<ShardusNetListener>, Throw> {
     // @TODO: Verify that a javascript number properly converts here without loss.
     let address = (host, port as u16);
 
-    let shardus_net = ShardusNetListener::new(address, payload_size_limit);
+    let shardus_net = ShardusNetListener::new(address, net_config);
 
     match shardus_net {
         Ok(net) => Ok(Arc::new(net)),

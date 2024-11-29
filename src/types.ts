@@ -61,6 +61,9 @@ export type SnOpts = {
     signingSecretKeyHex: string
   }
   payloadSizeLimitInBytes?: number
+  headerSizeLimitInBytes?: number
+  signatureSizeLimitInBytes?: number
+  ownerSizeLimitInBytes?: number
 }
 
 /**
@@ -71,13 +74,37 @@ export type SnOpts = {
 export const validateSnOpts = (opts: SnOpts): void => {
   if (!opts) throw new Error('snq: must supply options')
 
-  if (!opts.port || typeof opts.port !== 'number') throw new Error('snq: must supply port')
+  const validations = [
+    { condition: !opts.port || typeof opts.port !== 'number', message: 'snq: must supply port' },
+    {
+      condition: !opts.crypto.hashKey || typeof opts.crypto.hashKey !== 'string',
+      message: 'snq: must supply hashKey',
+    },
+    {
+      condition: opts.senderOpts?.useLruCache && !opts.senderOpts.lruSize,
+      message: 'snq: must supply lruSize when using lruCache',
+    },
+    {
+      condition: opts.payloadSizeLimitInBytes && typeof opts.payloadSizeLimitInBytes !== 'number',
+      message: 'snq: payloadSizeLimitInBytes must be a number',
+    },
+    {
+      condition: opts.headerSizeLimitInBytes && typeof opts.headerSizeLimitInBytes !== 'number',
+      message: 'snq: headerSizeLimitInBytes must be a number',
+    },
+    {
+      condition: opts.signatureSizeLimitInBytes && typeof opts.signatureSizeLimitInBytes !== 'number',
+      message: 'snq: signatureSizeLimitInBytes must be a number',
+    },
+    {
+      condition: opts.ownerSizeLimitInBytes && typeof opts.ownerSizeLimitInBytes !== 'number',
+      message: 'snq: ownerSizeLimitInBytes must be a number',
+    },
+  ]
 
-  if (!opts.crypto.hashKey || typeof opts.crypto.hashKey !== 'string')
-    throw new Error('snq: must supply hashKey')
-
-  if (opts.senderOpts && opts.senderOpts.useLruCache && !opts.senderOpts.lruSize)
-    throw new Error('snq: must supply lruSize when using lruCache')
+  for (const { condition, message } of validations) {
+    if (condition) throw new Error(message)
+  }
 }
 
 export interface RemoteSender {

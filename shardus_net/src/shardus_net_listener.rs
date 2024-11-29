@@ -1,10 +1,9 @@
+use super::runtime::RUNTIME;
 use crate::header::header_types::RequestMetadata;
 use crate::header_factory::header_deserialize_factory;
 use crate::message::Message;
-use crate::{shardus_crypto, HEADER_SIZE_LIMIT_IN_BYTES};
-
-use super::runtime::RUNTIME;
-
+use crate::shardus_crypto;
+use crate::NetConfig;
 use log::{error, info};
 use std::io::Cursor;
 use std::net::{SocketAddr, ToSocketAddrs};
@@ -18,7 +17,7 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 pub struct ShardusNetListener {
     address: SocketAddr,
-    payload_size_limit: usize,
+    net_config: NetConfig,
 }
 
 #[derive(Error, Debug)]
@@ -35,31 +34,31 @@ pub enum ListenerError {
 type ListenerResult<T> = Result<T, ListenerError>;
 
 impl ShardusNetListener {
-    pub fn new<A: ToSocketAddrs>(address: A, payload_size_limit: usize) -> Result<Self, ()> {
+    pub fn new<A: ToSocketAddrs>(address: A, net_config: NetConfig) -> Result<Self, ()> {
         let mut addresses = address.to_socket_addrs().map_err(|_| ())?;
         let address = addresses.next().ok_or(())?;
 
-        Ok(Self { address, payload_size_limit })
+        Ok(Self { address, net_config })
     }
 
     pub fn listen(&self) -> UnboundedReceiver<(String, SocketAddr, Option<RequestMetadata>)> {
-        Self::spawn_listener(self.address, self.payload_size_limit)
+        Self::spawn_listener(self.address, self.net_config.clone())
     }
 
-    fn spawn_listener(address: SocketAddr, payload_size_limit: usize) -> UnboundedReceiver<(String, SocketAddr, Option<RequestMetadata>)> {
+    fn spawn_listener(address: SocketAddr, net_config: NetConfig) -> UnboundedReceiver<(String, SocketAddr, Option<RequestMetadata>)> {
         let (tx, rx) = unbounded_channel();
-        RUNTIME.spawn(Self::bind_to_socket(address, tx, payload_size_limit));
+        RUNTIME.spawn(Self::bind_to_socket(address, tx, net_config));
         rx
     }
 
-    async fn bind_to_socket(address: SocketAddr, tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>, payload_size_limit: usize) {
+    async fn bind_to_socket(address: SocketAddr, tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>, net_config: NetConfig) {
         loop {
             let listener = TcpListener::bind(address).await;
 
             match listener {
                 Ok(listener) => {
                     let tx = tx.clone();
-                    match Self::accept_connections(listener, tx, payload_size_limit).await {
+                    match Self::accept_connections(listener, tx, net_config.clone()).await {
                         Ok(_) => unreachable!(),
                         Err(err) => {
                             error!("Failed to accept connection to {} due to {}", address, err)
@@ -73,13 +72,14 @@ impl ShardusNetListener {
         }
     }
 
-    async fn accept_connections(listener: TcpListener, received_msg_tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>, payload_size_limit: usize) -> std::io::Result<()> {
+    async fn accept_connections(listener: TcpListener, received_msg_tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>, net_config: NetConfig) -> std::io::Result<()> {
         loop {
             let (socket, remote_addr) = listener.accept().await?;
             let received_msg_tx = received_msg_tx.clone();
+            let net_config = net_config.clone();
 
             RUNTIME.spawn(async move {
-                let result = Self::receive(socket, remote_addr, received_msg_tx, payload_size_limit).await;
+                let result = Self::receive(socket, remote_addr, received_msg_tx, &net_config).await;
                 match result {
                     Ok(_) => info!("Connection safely completed and shutdown with {}", remote_addr),
                     Err(err) => {
@@ -90,16 +90,11 @@ impl ShardusNetListener {
         }
     }
 
-    async fn receive(
-        socket_stream: TcpStream,
-        remote_addr: SocketAddr,
-        received_msg_tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>,
-        payload_size_limit: usize,
-    ) -> ListenerResult<()> {
+    async fn receive(socket_stream: TcpStream, remote_addr: SocketAddr, received_msg_tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>, net_config: &NetConfig) -> ListenerResult<()> {
         let mut socket_stream: TcpStream = socket_stream;
         while let Ok(msg_len) = socket_stream.read_u32().await {
-            if (msg_len as usize) > payload_size_limit {
-                error!("Message length exceeds the limit of {} bytes", payload_size_limit);
+            if (msg_len as usize) > net_config.payload_size_limit {
+                error!("Message length exceeds the limit of {} bytes", net_config.payload_size_limit);
                 continue;
             }
 
@@ -121,13 +116,7 @@ impl ShardusNetListener {
                 let msg_bytes = &buffer[1..];
 
                 let mut cursor = Cursor::new(msg_bytes.to_vec());
-                let message = Message::deserialize(&mut cursor).expect("Failed to deserialize message");
-
-                if message.header.len() > HEADER_SIZE_LIMIT_IN_BYTES {
-                    error!("Header exceeds the limit of {} bytes", HEADER_SIZE_LIMIT_IN_BYTES);
-                    continue;
-                }
-
+                let message = Message::deserialize(&mut cursor, net_config.clone()).expect("Failed to deserialize message");
                 if !message.verify(shardus_crypto::get_shardus_crypto_instance()) {
                     error!("Failed to verify message signature");
                     continue;
@@ -135,7 +124,7 @@ impl ShardusNetListener {
                 info!("Message verified!");
 
                 let header_cursor = &mut Cursor::new(message.header);
-                let header = header_deserialize_factory(message.header_version, header_cursor).expect("Failed to deserialize header");
+                let header = header_deserialize_factory(message.header_version, header_cursor, &net_config).expect("Failed to deserialize header");
 
                 let data = message.data;
 

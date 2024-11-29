@@ -6,7 +6,8 @@ extern crate serde_json;
 use crate::compression::Compression;
 use serde::Deserialize;
 
-use crate::{check_variable_size, HEADER_SIZE_LIMIT_IN_BYTES};
+use crate::check_variable_size;
+use crate::NetConfig;
 
 #[derive(Deserialize)]
 pub struct HeaderV1 {
@@ -59,7 +60,7 @@ impl HeaderV1 {
     }
 
     // Deserialize a Vec<u8> cursor into a HeaderV1 struct
-    pub fn deserialize(cursor: &mut Cursor<Vec<u8>>) -> Option<Self> {
+    pub fn deserialize(cursor: &mut Cursor<Vec<u8>>, net_config: &NetConfig) -> Option<Self> {
         // Deserialize uuid
         let mut uuid_bytes = [0u8; 16];
         cursor.read_exact(&mut uuid_bytes).ok()?;
@@ -83,7 +84,7 @@ impl HeaderV1 {
         let mut tracker_id_len_bytes = [0u8; 4];
         cursor.read_exact(&mut tracker_id_len_bytes).ok()?;
         let tracker_id_len = u32::from_le_bytes(tracker_id_len_bytes);
-        check_variable_size(tracker_id_len, HEADER_SIZE_LIMIT_IN_BYTES);
+        check_variable_size(tracker_id_len, net_config.header_size_limit);
         let mut tracker_id_bytes = vec![0u8; tracker_id_len as usize];
         cursor.read_exact(&mut tracker_id_bytes).ok()?;
         let tracker_id = String::from_utf8(tracker_id_bytes).ok()?;
@@ -92,7 +93,7 @@ impl HeaderV1 {
         let mut verification_data_len_bytes = [0u8; 4];
         cursor.read_exact(&mut verification_data_len_bytes).ok()?;
         let verification_data_len = u32::from_le_bytes(verification_data_len_bytes);
-        check_variable_size(verification_data_len, HEADER_SIZE_LIMIT_IN_BYTES);
+        check_variable_size(verification_data_len, net_config.header_size_limit);
         let mut verification_data_bytes = vec![0u8; verification_data_len as usize];
         cursor.read_exact(&mut verification_data_bytes).ok()?;
         let verification_data = String::from_utf8(verification_data_bytes).ok()?;
@@ -146,10 +147,15 @@ mod tests {
             verification_data: "verification_data_1".to_string(),
             compression: Compression::None,
         };
-
+        let net_config = NetConfig {
+            header_size_limit: 2 * 1024,
+            signature_size_limit: 96,
+            owner_size_limit: 32,
+            payload_size_limit: 2 * 1024 * 1024,
+        };
         let serialized = header.serialize();
         let mut cursor = Cursor::new(serialized);
-        let deserialized = HeaderV1::deserialize(&mut cursor).unwrap();
+        let deserialized = HeaderV1::deserialize(&mut cursor, &net_config).unwrap();
 
         assert_eq!(header.uuid, deserialized.uuid);
         assert_eq!(header.message_length, deserialized.message_length);
@@ -194,23 +200,30 @@ mod tests {
     #[test]
     #[should_panic(expected = "variable_len exceeds the limit")]
     fn test_check_variable_size_panic() {
-        use crate::HEADER_SIZE_LIMIT_IN_BYTES;
-
+        let net_config = NetConfig {
+            header_size_limit: 2 * 1024,
+            signature_size_limit: 96,
+            owner_size_limit: 32,
+            payload_size_limit: 2 * 1024 * 1024,
+        };
         // Define a variable length that exceeds the limit
-        let oversized_length = HEADER_SIZE_LIMIT_IN_BYTES as u32 + 1;
+        let oversized_length = net_config.header_size_limit as u32 + 1;
 
         // Call the function, expecting it to panic
-        check_variable_size(oversized_length, HEADER_SIZE_LIMIT_IN_BYTES);
+        check_variable_size(oversized_length, net_config.header_size_limit);
     }
 
     #[test]
     fn test_check_variable_size_no_panic() {
-        use crate::HEADER_SIZE_LIMIT_IN_BYTES;
-
+        let net_config = NetConfig {
+            header_size_limit: 2 * 1024,
+            signature_size_limit: 96,
+            owner_size_limit: 32,
+            payload_size_limit: 2 * 1024 * 1024,
+        };
         // Define a variable length within the limit : 2048 (0x800)
         let valid_length = 0x799;
-
         // Call the function, ensuring it does not panic
-        check_variable_size(valid_length, HEADER_SIZE_LIMIT_IN_BYTES);
+        check_variable_size(valid_length, net_config.header_size_limit);
     }
 }
