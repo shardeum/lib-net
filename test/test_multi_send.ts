@@ -24,8 +24,10 @@ const setupLruSender = (
     headerOpts: {
       sendHeaderVersion: 1,
     },
-    payloadSizeLimitInBytes: limits.payloadSize || 2 * 1024 * 1024, // Default 2MB
-    headerSizeLimitInBytes: limits.headerSize || 2 * 1024, // Default 2KB
+    payloadOpts: {
+      payloadSizeLimitInBytes: limits.payloadSize || 2 * 1024 * 1024, // Default 2MB
+      headerSizeLimitInBytes: limits.headerSize || 2 * 1024, // Default 2KB
+    },
   })
 }
 
