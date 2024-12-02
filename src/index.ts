@@ -49,8 +49,8 @@ export const Sn = (opts: SnOpts) => {
   const LRU_SIZE = (opts.senderOpts && opts.senderOpts.lruSize) || 1028
   const HASH_KEY = opts.crypto.hashKey
   const SIGNING_SECRET_KEY_HEX = opts.crypto.signingSecretKeyHex
-  const PAYLOAD_SIZE_LIMIT = opts.payloadSizeLimitInBytes || 2 * 1024 * 1024 // 2MB
-  const HEADER_SIZE_LIMIT = opts.headerSizeLimitInBytes || 2 * 1024 // 2KB
+  const PAYLOAD_SIZE_LIMIT = opts.payloadOpts?.payloadSizeLimitInBytes || 2 * 1024 * 1024 // 2MB
+  const HEADER_SIZE_LIMIT = opts.payloadOpts?.headerSizeLimitInBytes || 2 * 1024 // 2KB
 
   const HEADER_OPTS = opts.headerOpts || {
     sendHeaderVersion: 0,

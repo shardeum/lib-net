@@ -60,8 +60,10 @@ export type SnOpts = {
     hashKey: string
     signingSecretKeyHex: string
   }
-  payloadSizeLimitInBytes?: number
-  headerSizeLimitInBytes?: number
+  payloadOpts?: {
+    payloadSizeLimitInBytes?: number
+    headerSizeLimitInBytes?: number
+  }
 }
 
 /**
@@ -83,11 +85,15 @@ export const validateSnOpts = (opts: SnOpts): void => {
       message: 'snq: must supply lruSize when using lruCache',
     },
     {
-      condition: opts.payloadSizeLimitInBytes && typeof opts.payloadSizeLimitInBytes !== 'number',
+      condition:
+        opts.payloadOpts?.payloadSizeLimitInBytes &&
+        typeof opts.payloadOpts.payloadSizeLimitInBytes !== 'number',
       message: 'snq: payloadSizeLimitInBytes must be a number',
     },
     {
-      condition: opts.headerSizeLimitInBytes && typeof opts.headerSizeLimitInBytes !== 'number',
+      condition:
+        opts.payloadOpts?.headerSizeLimitInBytes &&
+        typeof opts.payloadOpts.headerSizeLimitInBytes !== 'number',
       message: 'snq: headerSizeLimitInBytes must be a number',
     },
   ]
