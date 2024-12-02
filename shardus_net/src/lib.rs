@@ -39,7 +39,7 @@ use crate::shardus_net_sender::Connection;
 
 const ENABLE_COMPRESSION: bool = false;
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct NetConfig {
     pub header_size_limit: usize,
     pub payload_size_limit: usize,

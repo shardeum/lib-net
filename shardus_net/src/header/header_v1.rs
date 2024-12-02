@@ -61,7 +61,7 @@ impl HeaderV1 {
     }
 
     // Deserialize a Vec<u8> cursor into a HeaderV1 struct
-    pub fn deserialize(cursor: &mut Cursor<Vec<u8>>, net_config: &NetConfig) -> Option<Self> {
+    pub fn deserialize(cursor: &mut Cursor<Vec<u8>>, net_config: NetConfig) -> Option<Self> {
         // Deserialize uuid
         let mut uuid_bytes = [0u8; 16];
         cursor.read_exact(&mut uuid_bytes).ok()?;
@@ -154,7 +154,7 @@ mod tests {
         };
         let serialized = header.serialize();
         let mut cursor = Cursor::new(serialized);
-        let deserialized = HeaderV1::deserialize(&mut cursor, &net_config).unwrap();
+        let deserialized = HeaderV1::deserialize(&mut cursor, net_config).unwrap();
 
         assert_eq!(header.uuid, deserialized.uuid);
         assert_eq!(header.message_length, deserialized.message_length);

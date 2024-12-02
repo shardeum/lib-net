@@ -224,7 +224,7 @@ mod tests {
         };
         let serialized = message.serialize();
         let mut cursor = Cursor::new(serialized);
-        let deserialized = Message::deserialize(&mut cursor, &net_config).unwrap();
+        let deserialized = Message::deserialize(&mut cursor, net_config).unwrap();
 
         assert_eq!(message.header_version, deserialized.header_version);
         assert_eq!(message.header, deserialized.header);

@@ -42,7 +42,7 @@ impl ShardusNetListener {
     }
 
     pub fn listen(&self) -> UnboundedReceiver<(String, SocketAddr, Option<RequestMetadata>)> {
-        Self::spawn_listener(self.address, self.net_config.clone())
+        Self::spawn_listener(self.address, self.net_config)
     }
 
     fn spawn_listener(address: SocketAddr, net_config: NetConfig) -> UnboundedReceiver<(String, SocketAddr, Option<RequestMetadata>)> {
@@ -79,7 +79,7 @@ impl ShardusNetListener {
             let net_config = net_config.clone();
 
             RUNTIME.spawn(async move {
-                let result = Self::receive(socket, remote_addr, received_msg_tx, &net_config).await;
+                let result = Self::receive(socket, remote_addr, received_msg_tx, net_config).await;
                 match result {
                     Ok(_) => info!("Connection safely completed and shutdown with {}", remote_addr),
                     Err(err) => {
@@ -90,7 +90,7 @@ impl ShardusNetListener {
         }
     }
 
-    async fn receive(socket_stream: TcpStream, remote_addr: SocketAddr, received_msg_tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>, net_config: &NetConfig) -> ListenerResult<()> {
+    async fn receive(socket_stream: TcpStream, remote_addr: SocketAddr, received_msg_tx: UnboundedSender<(String, SocketAddr, Option<RequestMetadata>)>, net_config: NetConfig) -> ListenerResult<()> {
         let mut socket_stream: TcpStream = socket_stream;
         while let Ok(msg_len) = socket_stream.read_u32().await {
             if (msg_len as usize) > net_config.payload_size_limit {
@@ -116,7 +116,7 @@ impl ShardusNetListener {
                 let msg_bytes = &buffer[1..];
 
                 let mut cursor = Cursor::new(msg_bytes.to_vec());
-                let message = Message::deserialize(&mut cursor, net_config.clone()).expect("Failed to deserialize message");
+                let message = Message::deserialize(&mut cursor, net_config).expect("Failed to deserialize message");
                 if !message.verify(shardus_crypto::get_shardus_crypto_instance()) {
                     error!("Failed to verify message signature");
                     continue;
@@ -124,7 +124,7 @@ impl ShardusNetListener {
                 info!("Message verified!");
 
                 let header_cursor = &mut Cursor::new(message.header);
-                let header = header_deserialize_factory(message.header_version, header_cursor, &net_config).expect("Failed to deserialize header");
+                let header = header_deserialize_factory(message.header_version, header_cursor, net_config).expect("Failed to deserialize header");
 
                 let data = message.data;
 
