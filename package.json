@@ -57,14 +57,14 @@
     "uuid": "3.3.2"
   },
   "devDependencies": {
-    "@ethereumjs/tx": "^5.1.0",
-    "@ethereumjs/util": "^9.0.1",
+    "@ethereumjs/tx": "5.1.0",
+    "@ethereumjs/util": "9.0.1",
     "@types/node": "18.19.1",
     "@types/uuid": "7.0.0",
     "@typescript-eslint/eslint-plugin": "5.57.0",
     "@typescript-eslint/parser": "5.57.0",
     "eslint": "8.47.0",
-    "eslint-config-prettier": "^9.0.0",
+    "eslint-config-prettier": "9.0.0",
     "eslint-plugin-no-unsanitized": "4.0.2",
     "eslint-plugin-security": "1.7.1",
     "eslint-plugin-xss": "0.1.12",
