@@ -1,5 +1,5 @@
 {
-  "name": "@shardus/net",
+  "name": "@shardeum-foundation/lib-net",
   "version": "1.4.0",
   "description": "",
   "main": "build/src/index.js",
