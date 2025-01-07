@@ -6,25 +6,44 @@ Fundamentally, this is just a networked event emitter. Under the hood, the libra
 
 ## Installation
 
-### Regular Installation (with pre-built binaries)
+### Regular Installation
 ```bash
-npm install @shardus/net
+npm install github:shardeum/lib-net
 ```
 
-### Development Installation
+This will automatically download pre-built binaries for your platform if available. If no pre-built binary is available, it will fall back to building from source.
+
+### Development Setup
 If you want to build from source or contribute to development:
 ```bash
-# Full development setup (includes Rust build tools)
-npm run dev-setup
+# Clone the repository
+git clone https://github.com/shardeum/lib-net.git
+cd lib-net
 
-# Or manual setup
-npm install --ignore-scripts  # Install without building
-npm run build-rust           # Build Rust code
-npm run build               # Build everything
+# Install dependencies and build
+npm install
+npm run build
 ```
 
-### Binary Distribution
-This package uses pre-built binaries for faster installation. If a pre-built binary is not available for your platform, it will fall back to building from source.
+### Build Process
+The package includes Rust native modules which are:
+- Pre-built for common platforms and attached to GitHub releases
+- Automatically downloaded during installation
+- Built from source as fallback if no pre-built binary is available
+
+## Development
+
+### Building
+- `npm run build` - Build both TypeScript and Rust code
+- `npm run build-node` - Build only TypeScript
+- `npm run build-rust` - Build only Rust code
+- `npm test` - Run tests
+
+### Creating Releases
+Releases are managed through GitHub Actions:
+1. New releases are created via the GitHub Actions UI
+2. Pre-built binaries are automatically generated for all platforms
+3. Binaries are attached to the GitHub release
 
 ## Development Workflow
 
