@@ -33,5 +33,5 @@ flate2 = "1.0"
 brotli = "3.3"
 
 [features]
-default=[]
-debug=[]
+default = []
+debug = []

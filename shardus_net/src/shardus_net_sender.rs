@@ -5,7 +5,7 @@ use crate::message::Message;
 use crate::oneshot::Sender;
 use crate::shardus_crypto;
 use log::error;
-#[cfg(debug)]
+#[cfg(feature = "debug")]
 use log::info;
 use std::collections::HashMap;
 
@@ -102,11 +102,11 @@ impl ShardusNetSender {
             while let Some(address) = evict_socket_channel_rx.recv().await {
                 let mut connections = connections.lock().await;
                 connections.remove(&address);
-                #[cfg(debug)]
+                #[cfg(feature = "debug")]
                 info!("Evicted socket {} from cache", address);
             }
 
-            #[cfg(debug)]
+            #[cfg(feature = "debug")]
             info!("Evictor channel complete. Shutting down evictor task.")
         });
     }
@@ -134,7 +134,7 @@ impl ShardusNetSender {
                 });
             }
 
-            #[cfg(debug)]
+            #[cfg(feature = "debug")]
             info!("Sending channel complete. Shutting down sending task.")
         });
     }
@@ -161,7 +161,7 @@ impl Connection {
         let result = Self::write_data_to_stream(socket, data.clone()).await;
 
         if result.is_err() {
-            #[cfg(debug)]
+            #[cfg(feature = "debug")]
             info!("Failed to send data to {}. Attempting to reconnect and try again.", self.address);
 
             // There was an error sending data. The connection might have been previously closed.
@@ -234,7 +234,7 @@ impl ConnectionCache for HashMap<SocketAddr, Arc<Connection>> {
 
 impl ConnectionCache for LruCache<SocketAddr, Arc<Connection>> {
     fn get_or_insert(&mut self, address: SocketAddr) -> Arc<Connection> {
-        #[cfg(debug)]
+        #[cfg(feature = "debug")]
         info!("LruCache stats, current_size: {}, capacity: {}", self.len(), self.cap());
         match self.get(&address) {
             Some(connection) => connection.clone(),

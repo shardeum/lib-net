@@ -1,0 +1,11 @@
+[toolchain]
+channel = "1.83.0"  # Specify the exact Rust version
+components = [
+    "rustfmt",      # For code formatting
+    "clippy",       # For linting
+]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+] 

@@ -1,0 +1,286 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type (major, minor, patch, prerelease)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prerelease
+      prerelease_id:
+        description: 'Prerelease identifier (e.g., alpha, beta, rc) - only used if version_type is prerelease'
+        required: false
+        type: string
+        default: 'beta'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      new_version: ${{ env.NEW_VERSION }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      is_prerelease: ${{ github.event.inputs.version_type == 'prerelease' }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        run: |
+          if [ "${{ github.event.inputs.version_type }}" = "prerelease" ]; then
+            # Check if current version already has a prerelease component
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            if [[ $CURRENT_VERSION == *"-${{ github.event.inputs.prerelease_id }}."* ]]; then
+              # Already a prerelease, increment it
+              npm version pre${{ github.event.inputs.prerelease_id }} -m "Release %s"
+            else
+              # First prerelease
+              npm version prerelease --preid=${{ github.event.inputs.prerelease_id }} -m "Release %s"
+            fi
+          else
+            npm version ${{ github.event.inputs.version_type }} -m "Release %s"
+          fi
+          echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      - name: Push changes
+        run: git push --follow-tags
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.NEW_VERSION }}
+          release_name: Release v${{ env.NEW_VERSION }}
+          body: Release v${{ env.NEW_VERSION }}
+          draft: false
+          prerelease: ${{ github.event.inputs.version_type == 'prerelease' }}
+
+  build-typescript:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: v${{ needs.create-release.outputs.new_version }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build TypeScript
+        run: npm run build-node
+      
+      - name: Create package
+        run: |
+          tar -czf typescript-build.tar.gz \
+            package.json \
+            README.md \
+            build/ \
+            src/ \
+            Cargo.* \
+            shardus_net/ \
+            crypto/ \
+            shardeum_utils/ \
+            native/
+      
+      - name: Upload TypeScript build
+        uses: actions/upload-artifact@v3
+        with:
+          name: typescript-build
+          path: typescript-build.tar.gz
+
+  build-native:
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [
+          ubuntu-latest,
+          windows-latest,
+          macos-latest
+        ]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: win32
+          - os: macos-latest
+            platform: darwin
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: v${{ needs.create-release.outputs.new_version }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          components: rustfmt, clippy
+
+      - name: Add Rust to PATH
+        if: matrix.os != 'windows-latest'
+        run: |
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          source "$HOME/.cargo/env"
+
+      - name: Add Rust to PATH (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "$HOME/.cargo/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:Path = "$HOME/.cargo/bin;$env:Path"
+        shell: pwsh
+      
+      - name: Check Rust install
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Install System Dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl jq build-essential pkg-config libssl-dev
+
+      - name: Install System Dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install openssl
+          choco install llvm
+        shell: pwsh
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "native-build"
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build
+        if: matrix.os != 'windows-latest'
+        run: |
+          source "$HOME/.cargo/env"
+          npm run build-rust-release
+
+      - name: Build (Windows)
+        if: matrix.os == 'windows-latest'
+        run: npm run build-rust-release
+        shell: pwsh
+        
+      - name: Debug file locations
+        shell: bash
+        run: |
+          echo "Contents of native directory:"
+          ls -R native/
+          echo "Contents of build directory:"
+          ls -R build/ || true
+        
+      - name: Ensure native directory structure
+        shell: bash
+        run: |
+          mkdir -p native/${{ matrix.platform }}-x64
+          mv native/shardus-net.node native/${{ matrix.platform }}-x64/ || echo "Failed to move file"
+          echo "After move, contents of native directory:"
+          ls -R native/
+        
+      - name: Package binary
+        run: npm run package-binary
+        
+      - name: Debug - Find tar.gz files
+        shell: bash
+        run: |
+          echo "Looking for .tar.gz files in the workspace:"
+          find . -name "*.tar.gz" -type f
+
+      - name: Find tarball path
+        id: find_tarball
+        shell: bash
+        run: |
+          TARBALL_PATH=$(find . -name "*.tar.gz" -type f | grep -v "typescript-build.tar.gz" | head -n 1)
+          if [ -z "$TARBALL_PATH" ]; then
+            echo "No .tar.gz file found!"
+            exit 1
+          fi
+          echo "tarball_path=$TARBALL_PATH" >> $GITHUB_OUTPUT
+          echo "Found tarball at: $TARBALL_PATH"
+          
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.platform }}-binary
+          path: ${{ steps.find_tarball.outputs.tarball_path }}
+      
+      - name: Upload binary to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.find_tarball.outputs.tarball_path }}
+          asset_name: shardus-net-${{ matrix.platform }}.tar.gz
+          asset_content_type: application/gzip
+
+  publish-npm:
+    needs: [create-release, build-native, build-typescript]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: v${{ needs.create-release.outputs.new_version }}
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Setup binary files
+        run: |
+          mkdir -p native
+          cp -r artifacts/*-binary/* native/
+          tar xzf artifacts/typescript-build/typescript-build.tar.gz
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Publish to NPM
+        run: |
+          if [ "${{ needs.create-release.outputs.is_prerelease }}" = "true" ]; then
+            npm publish --tag ${{ github.event.inputs.prerelease_id }}
+          else
+            npm publish
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
