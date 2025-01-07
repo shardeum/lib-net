@@ -1,0 +1,51 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type (major, minor, patch)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bump version
+        run: |
+          npm version ${{ github.event.inputs.version_type }} -m "Release %s"
+          echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create v${NEW_VERSION} \
+            --title "Release v${NEW_VERSION}" \
+            --notes "Release v${NEW_VERSION}" \
+            --draft=false \
+            --prerelease=false
+
+      - name: Push changes
+        run: git push --follow-tags 

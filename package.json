@@ -4,6 +4,13 @@
   "description": "",
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
+  "binary": {
+    "module_name": "shardus-net",
+    "module_path": "native/{platform}-{arch}/",
+    "remote_path": "./v{version}",
+    "package_name": "{module_name}-v{version}-{node_abi}-{platform}-{arch}.tar.gz",
+    "host": "https://github.com/shardeum/lib-net/releases/download"
+  },
   "files": [
     "src/**/*",
     "build/**/*",
@@ -11,19 +18,22 @@
     "shardus_net/**/*",
     "crypto/**/*",
     "shardeum_utils/**/*",
-    "scripts/**/*"
+    "scripts/**/*",
+    "native/**/*"
   ],
   "scripts": {
     "prepare": "npm run build",
+    "install": "node-pre-gyp install --fallback-to-build || npm run build-rust-release",
     "build": "npm run build-rust-release && npm run build-node",
     "build-node": "tsc -p .",
-    "build-rust": "cargo-cp-artifact --artifact cdylib shardus_net shardus-net.node -- cargo build --message-format=json-render-diagnostics",
+    "build-rust": "./node_modules/.bin/cargo-cp-artifact --artifact cdylib shardus_net native/shardus-net.node -- cargo build --message-format=json-render-diagnostics",
     "build-rust-debug": "npm run build-rust --",
     "build-rust-release": "npm run build-rust -- --release",
+    "package-binary": "node-pre-gyp package",
+    "publish-binary": "node-pre-gyp publish",
     "compile": "npm run build-node",
     "release": "np --no-cleanup --no-yarn --any-branch",
     "prepack": "npm run build-node",
-    "postinstall": "npm run build-rust",
     "it-test": "npm run test:cargo",
     "it-test2": "ts-node test/test_lru.ts -p 44001 -c 2",
     "test:cargo": "cargo test",
@@ -40,7 +50,8 @@
     "url": "https://github.com/shardeum/lib-net.git"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
   },
   "contributors": [
     "Aaron Sullivan",
@@ -53,8 +64,11 @@
     "node": "18.19.1"
   },
   "dependencies": {
-    "cargo-cp-artifact": "0.1",
+    "@mapbox/node-pre-gyp": "^1.0.11",
     "uuid": "3.3.2"
+  },
+  "optionalDependencies": {
+    "cargo-cp-artifact": "0.1"
   },
   "devDependencies": {
     "@ethereumjs/tx": "5.4.0",
@@ -74,7 +88,8 @@
     "typescript": "4.4.4",
     "@types/jest": "27.0.1",
     "jest": "27.1.1",
-    "ts-jest": "27.0.5"
+    "ts-jest": "27.0.5",
+    "cargo-cp-artifact": "0.1"
   },
   "overrides": {
     "got": "11.8.5"

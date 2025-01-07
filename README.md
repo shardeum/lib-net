@@ -6,11 +6,38 @@ Fundamentally, this is just a networked event emitter. Under the hood, the libra
 
 ## Installation
 
-You can install shardus net via npm:
-
-```sh
-npm i gitlab:shardus/shardus-net
+### Regular Installation (with pre-built binaries)
+```bash
+npm install @shardus/net
 ```
+
+### Development Installation
+If you want to build from source or contribute to development:
+```bash
+# Full development setup (includes Rust build tools)
+npm run dev-setup
+
+# Or manual setup
+npm install --ignore-scripts  # Install without building
+npm run build-rust           # Build Rust code
+npm run build               # Build everything
+```
+
+### Binary Distribution
+This package uses pre-built binaries for faster installation. If a pre-built binary is not available for your platform, it will fall back to building from source.
+
+## Development Workflow
+
+### Quick Start
+1. Run `npm run dev-setup` to install all dependencies including Rust build tools
+2. Make your changes
+3. Run `npm run build` to build both TypeScript and Rust
+4. Run tests with `npm test`
+
+### Advanced Usage
+- Use `npm install --ignore-scripts` to skip binary builds during installation
+- Run `npm run build-rust` when you need to rebuild only the Rust code
+- Use `npm run build-node` for TypeScript-only builds
 
 ## Local Development
 
