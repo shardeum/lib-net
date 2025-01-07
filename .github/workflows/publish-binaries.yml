@@ -1,11 +1,47 @@
-name: Publish Binaries
+name: Publish Release Assets
 
 on:
   release:
     types: [created]
 
 jobs:
-  build:
+  build-typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build TypeScript
+        run: npm run build-node
+      
+      - name: Create package
+        run: |
+          tar -czf typescript-build.tar.gz \
+            package.json \
+            README.md \
+            build/ \
+            src/ \
+            Cargo.* \
+            shardus_net/ \
+            crypto/ \
+            shardeum_utils/ \
+            scripts/ \
+            native/
+      
+      - name: Upload TypeScript build
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./typescript-build.tar.gz
+          asset_name: typescript-build.tar.gz
+          asset_content_type: application/gzip
+
+  build-native:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -19,31 +55,30 @@ jobs:
             platform: darwin
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - uses: actions/setup-node@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+          
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          
+      - name: Install dependencies
+        run: npm ci
         
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
+      - name: Build
+        run: npm run build-rust-release
         
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build
-      run: npm run build
-      
-    - name: Package binary
-      run: npm run package-binary
-      
-    - name: Upload binary to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./build/stage/*.tar.gz
-        asset_name: shardus-net-${{ matrix.platform }}.tar.gz
-        asset_content_type: application/gzip 
+      - name: Package binary
+        run: npm run package-binary
+        
+      - name: Upload binary to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./build/stage/*.tar.gz
+          asset_name: shardus-net-${{ matrix.platform }}.tar.gz
+          asset_content_type: application/gzip 

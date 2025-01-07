@@ -29,9 +29,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build TypeScript
-        run: npm run build-node
-
       - name: Bump version
         run: |
           npm version ${{ github.event.inputs.version_type }} -m "Release %s"
