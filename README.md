@@ -45,24 +45,11 @@ Releases are managed through GitHub Actions:
 2. Pre-built binaries are automatically generated for all platforms
 3. Binaries are attached to the GitHub release
 
-## Development Workflow
-
-### Quick Start
-1. Run `npm run dev-setup` to install all dependencies including Rust build tools
-2. Make your changes
-3. Run `npm run build` to build both TypeScript and Rust
-4. Run tests with `npm test`
-
-### Advanced Usage
+### Development Tips
 - Use `npm install --ignore-scripts` to skip binary builds during installation
 - Run `npm run build-rust` when you need to rebuild only the Rust code
 - Use `npm run build-node` for TypeScript-only builds
-
-## Local Development
-
-If you're working on the `shardus-net` package, make sure to run the command `npm run build` manually to ensure both TypeScript and Rust files are generated.
-
-For publishing a release to NPM, simply run `npm run release` command.
+- Run `npm test` to run the test suite
 
 ## Usage
 

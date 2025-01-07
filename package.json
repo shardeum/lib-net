@@ -22,7 +22,6 @@
     "native/**/*"
   ],
   "scripts": {
-    "prepare": "npm run build",
     "install": "node-pre-gyp install --fallback-to-build || npm run build-rust-release",
     "build": "npm run build-rust-release && npm run build-node",
     "build-node": "tsc -p .",
@@ -32,13 +31,7 @@
     "package-binary": "node-pre-gyp package",
     "publish-binary": "node-pre-gyp publish",
     "compile": "npm run build-node",
-    "release": "np --no-cleanup --no-yarn --any-branch",
-    "prepack": "npm run build-node",
-    "it-test": "npm run test:cargo",
-    "it-test2": "ts-node test/test_lru.ts -p 44001 -c 2",
     "test:cargo": "cargo test",
-    "build:rust": "cargo build --workspace && npm run postbuild-cargo",
-    "postbuild-cargo": "node scripts/copy-rename.js",
     "lint": "eslint \"./src/**/*.ts\"",
     "format-check": "prettier --check \"./src/**/*.ts\"",
     "format-fix": "prettier --write \"./src/**/*.ts\"",
@@ -67,10 +60,8 @@
     "@mapbox/node-pre-gyp": "^1.0.11",
     "uuid": "3.3.2"
   },
-  "optionalDependencies": {
-    "cargo-cp-artifact": "0.1"
-  },
   "devDependencies": {
+    "cargo-cp-artifact": "0.1",
     "@ethereumjs/tx": "5.4.0",
     "@ethereumjs/util": "9.1.0",
     "@types/node": "18.19.1",
@@ -83,13 +74,11 @@
     "eslint-plugin-security": "1.7.1",
     "eslint-plugin-xss": "0.1.12",
     "gts": "3.1.0",
-    "np": "9.2.0",
     "prettier": "2.7.1",
     "typescript": "4.4.4",
     "@types/jest": "27.0.1",
     "jest": "27.1.1",
-    "ts-jest": "27.0.5",
-    "cargo-cp-artifact": "0.1"
+    "ts-jest": "27.0.5"
   },
   "overrides": {
     "got": "11.8.5"

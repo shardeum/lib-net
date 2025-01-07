@@ -10,7 +10,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: [18.x]
         include:
           - os: ubuntu-latest
             platform: linux
@@ -22,10 +21,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
+    - uses: actions/setup-node@v3
         
     - name: Install Rust
       uses: actions-rs/toolchain@v1
