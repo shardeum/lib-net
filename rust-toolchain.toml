@@ -1,5 +1,5 @@
 [toolchain]
-channel = "1.83.0"  # Specify the exact Rust version
+channel = "1.74.0"  # Specify the exact Rust version
 components = [
     "rustfmt",      # For code formatting
     "clippy",       # For linting

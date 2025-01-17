@@ -1,8 +1,3 @@
 [workspace]
-members = [
-    "shardus_net",
-    "crypto",
-    "shardeum_utils"
-]
-
-resolver = "2"
+members = ["shardus_net", "crypto", "shardeum_utils"]
+resolver = "1"

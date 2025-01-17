@@ -8,7 +8,7 @@ use std::time::Instant;
 use std::{net::ToSocketAddrs, sync::Arc};
 
 use header_factory::header_from_json_string;
-#[cfg(feature = "debug")]
+#[cfg(debug)]
 use log::info;
 //use log::LevelFilter;
 use lru::LruCache;
@@ -443,11 +443,11 @@ fn create_shardus_net_listener(cx: &mut FunctionContext, port: f64, host: String
 
 fn create_shardus_net_sender(use_lru: bool, lru_size: NonZeroUsize, key_pair: crypto::KeyPair) -> Arc<ShardusNetSender> {
     let connections: Arc<Mutex<dyn ConnectionCache + Send>> = if use_lru {
-        #[cfg(feature = "debug")]
+        #[cfg(debug)]
         info!("Using LRU cache with size {} for socket mgmt", lru_size.get());
         Arc::new(Mutex::new(LruCache::new(lru_size)))
     } else {
-        #[cfg(feature = "debug")]
+        #[cfg(debug)]
         info!("Using hashmap for socket mgmt");
         Arc::new(Mutex::new(HashMap::<SocketAddr, Arc<Connection>>::new()))
     };
