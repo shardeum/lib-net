@@ -4,6 +4,13 @@
   "description": "",
   "main": "build/src/index.js",
   "types": "build/src/index.d.ts",
+  "binary": {
+    "module_name": "shardus-net",
+    "module_path": "native/{platform}-{arch}/",
+    "remote_path": ".",
+    "package_name": "{module_name}-v{version}-{node_abi}-{platform}-{arch}.tar.gz",
+    "host": "https://registry.npmjs.org/@shardeum-foundation/lib-net"
+  },
   "files": [
     "src/**/*",
     "build/**/*",
@@ -11,39 +18,33 @@
     "shardus_net/**/*",
     "crypto/**/*",
     "shardeum_utils/**/*",
-    "scripts/**/*"
+    "native/**/*"
   ],
   "scripts": {
-    "prepare": "npm run build",
-    "build": "npm run build-rust-release && npm run build-node",
+    "install": "node-pre-gyp install --fallback-to-build=false || npm run build-rust-release",
+    "build": "npm run build-rust && npm run build-node",
     "build-node": "tsc -p .",
     "build-rust": "cargo-cp-artifact --artifact cdylib shardus_net shardus-net.node -- cargo build --message-format=json-render-diagnostics",
-    "build-rust-debug": "npm run build-rust --",
-    "build-rust-release": "npm run build-rust -- --release",
+    "build-rust-release": "cargo-cp-artifact --artifact cdylib shardus_net shardus-net.node -- cargo build --release --message-format=json-render-diagnostics",
+    "package-binary": "node-pre-gyp package",
     "compile": "npm run build-node",
     "prepack": "npm run build-node",
-    "postinstall": "npm run build-rust",
     "it-test": "npm run test:cargo",
     "it-test2": "ts-node test/test_lru.ts -p 44001 -c 2",
     "test:cargo": "cargo test",
-    "build:rust": "cargo build --workspace && npm run postbuild-cargo",
-    "postbuild-cargo": "node scripts/copy-rename.js",
     "lint": "eslint \"./src/**/*.ts\"",
     "format-check": "prettier --check \"./src/**/*.ts\"",
     "format-fix": "prettier --write \"./src/**/*.ts\"",
-    "clean": "cargo clean",
     "test": "jest",
-    "release:prerelease": "npm run prepare && npm version prerelease --preid=prerelease && git push --follow-tags && npm publish --tag prerelease",
-    "release:patch": "npm run prepare && npm version patch && git push --follow-tags && npm publish",
-    "release:minor": "npm run prepare && npm version minor && git push --follow-tags && npm publish",
-    "release:major": "npm run prepare && npm version major && git push --follow-tags && npm publish"
+    "clean": "cargo clean && rm -rf build native"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/shardeum/lib-net.git"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "contributors": [
     "Aaron Sullivan",
@@ -56,10 +57,11 @@
     "node": "18.19.1"
   },
   "dependencies": {
-    "cargo-cp-artifact": "0.1",
+    "@mapbox/node-pre-gyp": "^1.0.11",
     "uuid": "3.3.2"
   },
   "devDependencies": {
+    "cargo-cp-artifact": "^0.1",
     "@ethereumjs/tx": "5.4.0",
     "@ethereumjs/util": "9.1.0",
     "@types/node": "18.19.1",
@@ -72,7 +74,6 @@
     "eslint-plugin-security": "1.7.1",
     "eslint-plugin-xss": "0.1.12",
     "gts": "3.1.0",
-    "np": "9.2.0",
     "prettier": "2.7.1",
     "typescript": "4.4.4",
     "@types/jest": "27.0.1",
