@@ -92,6 +92,16 @@ impl ShardusCrypto {
         }
     }
 
+    pub fn hashslice(&self, input: &[u8], fmt: Format) -> HexStringOrBuffer {
+        let digest = sodiumoxide::crypto::generichash::hash(input, Some(32), Some(&self.hash_key))
+            .expect("Cannot digest input");
+    
+        match fmt {
+            Format::Hex => HexStringOrBuffer::Hex(sodiumoxide::hex::encode(&digest)),
+            Format::Buffer => HexStringOrBuffer::Buffer(digest.as_ref().to_vec()),
+        }
+    }
+
     /// Signs the input data using the provided secret key.
     ///
     /// # Arguments

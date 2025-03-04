@@ -11,7 +11,7 @@ pub fn wrap_serialized_message(mut serialized_message: Vec<u8>) -> Vec<u8> {
     buffer
 }
 
-pub fn header_deserialize_factory(version: u8, serialized_header_cursor: &mut Cursor<Vec<u8>>, net_config: NetConfig) -> Option<Header> {
+pub fn header_deserialize_factory(version: u8, serialized_header_cursor: &mut Cursor<Vec<u8>>, net_config: &NetConfig) -> Option<Header> {
     match version {
         1 => {
             let deserialized = HeaderV1::deserialize(serialized_header_cursor, net_config)?;

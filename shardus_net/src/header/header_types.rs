@@ -13,7 +13,7 @@ impl Header {
         }
     }
 
-    pub fn validate(&self, message: Vec<u8>) -> bool {
+    pub fn validate(&self, message: &Vec<u8>) -> bool {
         match self {
             Header::V1(header_v1) => header_v1.validate(message),
         }

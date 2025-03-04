@@ -65,9 +65,9 @@ impl ShardusNetSender {
         let compressed_data = header.compress(data);
         header.set_message_length(compressed_data.len() as u32);
         let serialized_header = header_serialize_factory(header_version, header).expect("Failed to serialize header");
-        let mut message = Message::new_unsigned(header_version, serialized_header, compressed_data);
-        message.sign(shardus_crypto::get_shardus_crypto_instance(), &self.key_pair);
-        let serialized_message = wrap_serialized_message(message.serialize());
+        let message = Message::new_unsigned(header_version, serialized_header, compressed_data);
+        let shardus_crypto_instance = shardus_crypto::get_shardus_crypto_instance();
+        let serialized_message = message.serialize_optimized(&shardus_crypto_instance, &self.key_pair);
         self.send_channel
             .send((address, serialized_message, complete_tx))
             .expect("Unexpected! Failed to send data with header to channel. Sender task must have been dropped.");
@@ -158,7 +158,7 @@ impl Connection {
 
         let socket = Self::connect_and_set_socket_if_none(socket_op, self.address).await?;
 
-        let result = Self::write_data_to_stream(socket, data.clone()).await;
+        let result = Self::write_data_to_stream(socket, &data).await;
 
         if result.is_err() {
             #[cfg(debug)]
@@ -169,7 +169,7 @@ impl Connection {
 
             // Since there was an error previously, try reconnecting to the socket and resending the data.
             let socket = Self::connect_and_set_socket_if_none(socket_op, self.address).await?;
-            let result = Self::write_data_to_stream(socket, data).await;
+            let result = Self::write_data_to_stream(socket, &data).await;
 
             // If there is still an error even after the retry, return as failure to send.
             if let Err(error) = result {
@@ -197,13 +197,15 @@ impl Connection {
         Ok(socket)
     }
 
-    async fn write_data_to_stream(socket: &mut TcpStream, data: Vec<u8>) -> io::Result<()> {
+    async fn write_data_to_stream(socket: &mut TcpStream, data: &[u8]) -> io::Result<()> {
         let len = data.len() as u32;
-        let mut buffer = Vec::with_capacity(4 + data.len());
-        buffer.extend_from_slice(&len.to_be_bytes());
-        buffer.extend_from_slice(&data);
-
-        socket.write_all(&buffer).await
+        let len_bytes = len.to_be_bytes();
+        
+        socket.write_all(&len_bytes).await?;        
+        socket.write_all(data).await?;        
+        socket.flush().await?;
+        
+        Ok(())
     }
 }
 

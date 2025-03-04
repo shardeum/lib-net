@@ -51,24 +51,77 @@ impl Message {
         crypto.verify(&hash, &self.sign.sig, &crypto.get_pk(&crypto::HexStringOrBuffer::Buffer(owner)))
     }
 
+    pub fn serialize_optimized(
+        &self,
+        crypto: &ShardusCrypto,
+        key_pair: &KeyPair
+    ) -> Vec<u8> {
+        // Pre-calculate sizes.
+        let header_len = self.header.len();
+        let data_len = self.data.len();
+        // Unsigned body (excluding the prefix) size:
+        // 1 byte for header_version + 4 bytes for header length + header bytes +
+        // 4 bytes for data length + data bytes.
+        let unsigned_body_size = 1 + 4 + header_len + 4 + data_len;
+        
+        // Estimate extra space for the signature.
+        // Sign serialization includes: 4 bytes for owner length + owner bytes +
+        // 4 bytes for signature length + signature bytes.
+        // (Adjust the estimate if you know the exact sizes.)
+        let estimated_sign_size = 4 + key_pair.public_key.0.len() + 4 + 128;
+        
+        // Final capacity: 1 byte for the wrap prefix + unsigned message + sign.
+        let final_capacity = 1 + unsigned_body_size + estimated_sign_size;
+        let mut buffer = Vec::with_capacity(final_capacity);
+    
+        // Write wrap prefix.
+        buffer.push(1); // indicates that the header system is in use
+    
+        // Write unsigned message directly into the final buffer.
+        buffer.extend_from_slice(&self.header_version.to_le_bytes());
+        buffer.extend_from_slice(&(header_len as u32).to_le_bytes());
+        buffer.extend_from_slice(&self.header);
+        buffer.extend_from_slice(&(data_len as u32).to_le_bytes());
+        buffer.extend_from_slice(&self.data);
+    
+        // The unsigned message is now the slice from index 1 to current length.
+        let unsigned_slice = &buffer[1..];
+    
+        // Sign the unsigned message.
+        let hash = crypto.hashslice(unsigned_slice, crypto::Format::Buffer);
+        let signature = crypto
+            .sign(hash, &key_pair.secret_key)
+            .expect("Failed to sign message");
+    
+        // Append signature bytes.
+        // First, write the owner.
+        let owner = key_pair.public_key.0.as_slice();
+        buffer.extend_from_slice(&(owner.len() as u32).to_le_bytes());
+        buffer.extend_from_slice(owner);
+        // Then, write the signature.
+        buffer.extend_from_slice(&(signature.len() as u32).to_le_bytes());
+        buffer.extend_from_slice(&signature);
+    
+        buffer
+    }
+
     pub fn serialize_unsigned(&self) -> Vec<u8> {
-        let mut buffer = Vec::new();
+        let capacity = 1 + 4 + self.header.len() + 4 + self.data.len();
+        let mut buffer = Vec::with_capacity(capacity);
 
         // Serialize header_version (1 byte)
-        buffer.write_all(&self.header_version.to_le_bytes()).unwrap();
+        buffer.extend_from_slice(&self.header_version.to_le_bytes());
 
         // Serialize header length and header
         let header_len = self.header.len() as u32;
-        let header_bytes = self.header.clone();
-        buffer.write_all(&header_len.to_le_bytes()).unwrap();
-        buffer.write_all(&header_bytes).unwrap();
+        buffer.extend_from_slice(&header_len.to_le_bytes());
+        buffer.extend_from_slice(&self.header);
 
         // Serialize data length and data
         let data_len = self.data.len() as u32;
-        let data_bytes = self.data.clone();
-        buffer.write_all(&data_len.to_le_bytes()).unwrap();
-        buffer.write_all(&data_bytes).unwrap();
-
+        buffer.extend_from_slice(&data_len.to_le_bytes());
+        buffer.extend_from_slice(&self.data);
+        
         buffer
     }
 
@@ -85,7 +138,7 @@ impl Message {
         buffer
     }
 
-    pub fn deserialize(cursor: &mut Cursor<Vec<u8>>, net_config: NetConfig) -> Option<Message> {
+    pub fn deserialize(cursor: &mut Cursor<&[u8]>, net_config: &NetConfig) -> Option<Message> {
         // Deserialize header_version
         let mut header_version_bytes = [0u8; 1];
         cursor.read_exact(&mut header_version_bytes).ok()?;
@@ -140,7 +193,7 @@ impl Sign {
         buffer
     }
 
-    pub fn deserialize(cursor: &mut Cursor<Vec<u8>>) -> Option<Sign> {
+    pub fn deserialize(cursor: &mut Cursor<&[u8]>) -> Option<Sign> {
         // Deserialize owner
         let mut owner_len_bytes = [0u8; 4];
         cursor.read_exact(&mut owner_len_bytes).ok()?;
