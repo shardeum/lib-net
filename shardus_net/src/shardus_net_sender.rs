@@ -124,7 +124,7 @@ impl ShardusNetSender {
                 };
 
                 RUNTIME.spawn(async move {
-                    let timeout_duration = tokio::time::Duration::from_secs(120);
+                    let timeout_duration = tokio::time::Duration::from_secs(30);
                     let result = match tokio::time::timeout(timeout_duration, connection.send(data)).await {
                         Ok(result) => result,
                         Err(_) => {
@@ -133,6 +133,7 @@ impl ShardusNetSender {
                         }
                     };
                     complete_tx.send(result).ok();
+                    drop(connection);
                 });
             }
 
