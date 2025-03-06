@@ -1,6 +1,6 @@
 use super::runtime::RUNTIME;
 use crate::header::header_types::Header;
-use crate::header_factory::{header_serialize_factory, wrap_serialized_message};
+use crate::header_factory::header_serialize_factory;
 use crate::message::Message;
 use crate::oneshot::Sender;
 use crate::shardus_crypto;
@@ -33,7 +33,7 @@ pub type SendResult = Result<(), SenderError>;
 
 pub struct ShardusNetSender {
     key_pair: crypto::KeyPair,
-    send_channel: UnboundedSender<(SocketAddr, Vec<u8>, Sender<SendResult>)>,
+    send_channel: UnboundedSender<(SocketAddr, Arc<Vec<u8>>, Sender<SendResult>)>,
     evict_socket_channel: UnboundedSender<SocketAddr>,
 }
 
@@ -54,37 +54,39 @@ impl ShardusNetSender {
 
     // send: send data to a socket address without a header
     pub fn send(&self, address: SocketAddr, data: String, complete_tx: Sender<SendResult>) {
-        let data = data.into_bytes();
+        let data = Arc::new(data.into_bytes());
         self.send_channel
-            .send((address, data, complete_tx))
+            .send((address, Arc::clone(&data), complete_tx))
             .expect("Unexpected! Failed to send data to channel. Sender task must have been dropped.");
     }
 
     // send_with_header: send data to a socket address with a header and signature
     pub fn send_with_header(&self, address: SocketAddr, header_version: u8, mut header: Header, data: Vec<u8>, complete_tx: Sender<SendResult>) {
-        let compressed_data = header.compress(data);
+        //let compressed_data = header.compress(data);
+        let compressed_data = data;
         header.set_message_length(compressed_data.len() as u32);
         let serialized_header = header_serialize_factory(header_version, header).expect("Failed to serialize header");
         let message = Message::new_unsigned(header_version, serialized_header, compressed_data);
         let shardus_crypto_instance = shardus_crypto::get_shardus_crypto_instance();
-        let serialized_message = message.serialize_optimized(&shardus_crypto_instance, &self.key_pair);
+        let serialized_message = Arc::new(message.serialize_optimized(&shardus_crypto_instance, &self.key_pair));
         self.send_channel
-            .send((address, serialized_message, complete_tx))
+            .send((address, Arc::clone(&serialized_message), complete_tx))
             .expect("Unexpected! Failed to send data with header to channel. Sender task must have been dropped.");
     }
 
     // multi_send_with_header: send data to multiple socket addresses with a single header and signature
     pub fn multi_send_with_header(&self, addresses: Vec<SocketAddr>, header_version: u8, mut header: Header, data: Vec<u8>, senders: Vec<Sender<SendResult>>) {
-        let compressed_data = header.compress(data);
+        //let compressed_data = header.compress(data);
+        let compressed_data = data;
         header.set_message_length(compressed_data.len() as u32);
         let serialized_header = header_serialize_factory(header_version, header).expect("Failed to serialize header");
-        let mut message = Message::new_unsigned(header_version, serialized_header.clone(), compressed_data.clone());
-        message.sign(shardus_crypto::get_shardus_crypto_instance(), &self.key_pair);
-        let serialized_message = wrap_serialized_message(message.serialize());
+        let message = Message::new_unsigned(header_version, serialized_header, compressed_data);
+        let shardus_crypto_instance = shardus_crypto::get_shardus_crypto_instance();
+        let serialized_message = Arc::new(message.serialize_optimized(&shardus_crypto_instance, &self.key_pair));
 
         for (address, sender) in addresses.into_iter().zip(senders.into_iter()) {
             self.send_channel
-                .send((address, serialized_message.clone(), sender))
+                .send((address, Arc::clone(&serialized_message), sender))
                 .expect("Failed to send data with header to channel");
         }
     }
@@ -111,7 +113,7 @@ impl ShardusNetSender {
         });
     }
 
-    fn spawn_sender(send_channel_rx: UnboundedReceiver<(SocketAddr, Vec<u8>, Sender<SendResult>)>, connections: Arc<Mutex<dyn ConnectionCache + Send>>) {
+    fn spawn_sender(send_channel_rx: UnboundedReceiver<(SocketAddr, Arc<Vec<u8>>, Sender<SendResult>)>, connections: Arc<Mutex<dyn ConnectionCache + Send>>) {
         RUNTIME.spawn(async move {
             let mut send_channel_rx = send_channel_rx;
 
@@ -152,13 +154,13 @@ impl Connection {
         Self { address, socket }
     }
 
-    async fn send(&self, data: Vec<u8>) -> SendResult {
+    async fn send(&self, data: Arc<Vec<u8>>) -> SendResult {
         let mut socket = self.socket.lock().await;
         let socket_op = &mut (*socket);
 
         let socket = Self::connect_and_set_socket_if_none(socket_op, self.address).await?;
 
-        let result = Self::write_data_to_stream(socket, &data).await;
+        let result = Self::write_data_to_stream(socket, data.as_ref()).await;
 
         if result.is_err() {
             #[cfg(debug)]
@@ -169,7 +171,7 @@ impl Connection {
 
             // Since there was an error previously, try reconnecting to the socket and resending the data.
             let socket = Self::connect_and_set_socket_if_none(socket_op, self.address).await?;
-            let result = Self::write_data_to_stream(socket, &data).await;
+            let result = Self::write_data_to_stream(socket, data.as_ref()).await;
 
             // If there is still an error even after the retry, return as failure to send.
             if let Err(error) = result {

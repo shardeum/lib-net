@@ -1,4 +1,4 @@
-use std::io::{Cursor, Read, Write};
+use std::io::{Cursor, Read};
 
 use crate::NetConfig;
 use crate::{check_variable_size, OWNER_SIZE_LIMIT_IN_BYTES, SIGNATURE_SIZE_LIMIT_IN_BYTES};
@@ -33,16 +33,16 @@ impl Message {
         }
     }
 
-    pub fn sign(&mut self, crypto: &ShardusCrypto, key_pair: &KeyPair) {
-        let unsigned = self.serialize_unsigned();
-        let hash = crypto.hash(&unsigned, Buffer);
-        let signature = crypto.sign(hash, &key_pair.secret_key);
-        if signature.is_err() {
-            panic!("Failed to sign message");
-        }
-        let signature = signature.unwrap();
-        self.sign = Sign::new(key_pair.public_key.0.to_vec(), signature);
-    }
+    // pub fn sign(&mut self, crypto: &ShardusCrypto, key_pair: &KeyPair) {
+    //     let unsigned = self.serialize_unsigned();
+    //     let hash = crypto.hash(&unsigned, Buffer);
+    //     let signature = crypto.sign(hash, &key_pair.secret_key);
+    //     if signature.is_err() {
+    //         panic!("Failed to sign message");
+    //     }
+    //     let signature = signature.unwrap();
+    //     self.sign = Sign::new(key_pair.public_key.0.to_vec(), signature);
+    // }
 
     pub fn verify(&self, crypto: &ShardusCrypto) -> bool {
         let unsigned = self.serialize_unsigned();
@@ -125,18 +125,18 @@ impl Message {
         buffer
     }
 
-    pub fn serialize(&self) -> Vec<u8> {
-        let mut buffer = Vec::new();
+    // pub fn serialize(&self) -> Vec<u8> {
+    //     let mut buffer = Vec::new();
 
-        // Serialize unsigned message
-        buffer.append(&mut self.serialize_unsigned());
+    //     // Serialize unsigned message
+    //     buffer.append(&mut self.serialize_unsigned());
 
-        // Serialize sign
-        let sign_bytes = self.sign.serialize();
-        buffer.write_all(&sign_bytes).unwrap();
+    //     // Serialize sign
+    //     let sign_bytes = self.sign.serialize();
+    //     buffer.write_all(&sign_bytes).unwrap();
 
-        buffer
-    }
+    //     buffer
+    // }
 
     pub fn deserialize(cursor: &mut Cursor<&[u8]>, net_config: &NetConfig) -> Option<Message> {
         // Deserialize header_version
@@ -175,23 +175,23 @@ impl Sign {
         Sign { owner, sig: signature }
     }
 
-    pub fn serialize(&self) -> Vec<u8> {
-        let mut buffer = Vec::new();
+    // pub fn serialize(&self) -> Vec<u8> {
+    //     let mut buffer = Vec::new();
 
-        // Serialize owner length and owner
-        let owner_len = self.owner.len() as u32;
-        let owner_bytes = self.owner.clone();
-        buffer.write_all(&owner_len.to_le_bytes()).unwrap();
-        buffer.write_all(&owner_bytes).unwrap();
+    //     // Serialize owner length and owner
+    //     let owner_len = self.owner.len() as u32;
+    //     let owner_bytes = self.owner.clone();
+    //     buffer.write_all(&owner_len.to_le_bytes()).unwrap();
+    //     buffer.write_all(&owner_bytes).unwrap();
 
-        // Serialize signature length and signature
-        let signature_len = self.sig.len() as u32;
-        let signature_bytes = self.sig.clone();
-        buffer.write_all(&signature_len.to_le_bytes()).unwrap();
-        buffer.write_all(&signature_bytes).unwrap();
+    //     // Serialize signature length and signature
+    //     let signature_len = self.sig.len() as u32;
+    //     let signature_bytes = self.sig.clone();
+    //     buffer.write_all(&signature_len.to_le_bytes()).unwrap();
+    //     buffer.write_all(&signature_bytes).unwrap();
 
-        buffer
-    }
+    //     buffer
+    // }
 
     pub fn deserialize(cursor: &mut Cursor<&[u8]>) -> Option<Sign> {
         // Deserialize owner
