@@ -16,9 +16,7 @@ console.log('Is EIP2930 Tx address consistent?:', getSenderAddress(raw_tx).addre
 console.log(getSenderAddress(raw_tx2))
 console.log('Is Legacy Tx address consistent?:', getSenderAddress(raw_tx2).address === expected_addr_str2)
 
-function getTransactionObj(
-  tx
-): Transaction[TransactionType.Legacy] | Transaction[TransactionType.AccessListEIP2930] {
+function getTransactionObj(tx): Transaction[TransactionType.Legacy] | Transaction[TransactionType.AccessListEIP2930] {
   if (!tx.raw) throw Error('fail')
   let transactionObj
   const serializedInput = toBytes(tx.raw)
@@ -29,8 +27,7 @@ function getTransactionObj(
   }
   if (!transactionObj) {
     try {
-      transactionObj =
-        TransactionFactory.fromSerializedData<TransactionType.AccessListEIP2930>(serializedInput)
+      transactionObj = TransactionFactory.fromSerializedData<TransactionType.AccessListEIP2930>(serializedInput)
     } catch (e) {
       throw Error('fail')
     }

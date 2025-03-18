@@ -86,14 +86,12 @@ export const validateSnOpts = (opts: SnOpts): void => {
     },
     {
       condition:
-        opts.payloadOpts?.payloadSizeLimitInBytes &&
-        typeof opts.payloadOpts.payloadSizeLimitInBytes !== 'number',
+        opts.payloadOpts?.payloadSizeLimitInBytes && typeof opts.payloadOpts.payloadSizeLimitInBytes !== 'number',
       message: 'snq: payloadSizeLimitInBytes must be a number',
     },
     {
       condition:
-        opts.payloadOpts?.headerSizeLimitInBytes &&
-        typeof opts.payloadOpts.headerSizeLimitInBytes !== 'number',
+        opts.payloadOpts?.headerSizeLimitInBytes && typeof opts.payloadOpts.headerSizeLimitInBytes !== 'number',
       message: 'snq: headerSizeLimitInBytes must be a number',
     },
   ]

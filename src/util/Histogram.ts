@@ -53,10 +53,13 @@ export const NewNumberHistogram = (name: string, bucketRanges: number[]) => {
     return value >= rangeStart && value < rangeEnd
   })
 
-  setInterval(() => {
-    /* prettier-ignore */ if(logFlags.net_stats) histogram.printHistogram(name)
-    /* prettier-ignore */ if(logFlags.net_stats) histogram.clearHistogram()
-  }, 10 * 60 * 1000)
+  setInterval(
+    () => {
+      /* prettier-ignore */ if(logFlags.net_stats) histogram.printHistogram(name)
+      /* prettier-ignore */ if(logFlags.net_stats) histogram.clearHistogram()
+    },
+    10 * 60 * 1000
+  )
 
   return histogram
 }

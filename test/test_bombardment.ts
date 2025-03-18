@@ -95,9 +95,7 @@ async function socketBombardmentWithLimitedActiveSockets(numberOfActiveSockets: 
         // eslint-disable-next-line security/detect-object-injection
         return socketClients[j]
           .send(TARGET_SOCKET_PORT, TARGET_SOCKET_HOST, MESSAGE_JSON)
-          .catch((err: Error) =>
-            console.error(`Bombardment ${i + 1} of ${NUMBER_OF_BOMBS} failed. Error: ${err}`)
-          )
+          .catch((err: Error) => console.error(`Bombardment ${i + 1} of ${NUMBER_OF_BOMBS} failed. Error: ${err}`))
       })
     }
     await Promise.all(promises.map((p) => p()))

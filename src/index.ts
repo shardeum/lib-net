@@ -385,12 +385,7 @@ export const Sn = (opts: SnOpts) => {
     // This is a wrapped form of the 'handleData' callback the user supplied.
     // Its job is to determine if the incoming data is a response to a request
     // the user sent. It does this by referencing the UUID map object.
-    const extractUUIDHandleData = (
-      augDataStr: string,
-      remote: RemoteSender,
-      header?: AppHeader,
-      sign?: Sign
-    ) => {
+    const extractUUIDHandleData = (augDataStr: string, remote: RemoteSender, header?: AppHeader, sign?: Sign) => {
       // [TODO] Secure this with validation
       let augData: AugmentedData = jsonParse(augDataStr, opts.customJsonParser)
 
