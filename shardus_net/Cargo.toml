@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 crypto = { path = "../crypto" }
 shardeum_utils = { path = "../shardeum_utils" }
-tokio = { version = "1.13", features = [
+tokio = { version = "1.38", features = [
   "io-util",
   "sync",
   "net",
