@@ -55,9 +55,6 @@
     "Kyle Shifflett",
     "James Harmon"
   ],
-  "engines": {
-    "node": "18.19.1"
-  },
   "dependencies": {
     "cargo-cp-artifact": "0.1",
     "uuid": "3.3.2"
