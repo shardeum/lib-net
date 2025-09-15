@@ -1,4 +1,4 @@
-import * as uuid from 'uuid/v1'
+import { v1 as uuid } from 'uuid'
 import { getSenderAddress, Sn, logFlags } from '../../../src/index'
 import { SnOpts } from '../../../src/types'
 
@@ -10,7 +10,7 @@ jest.mock('../../../../shardus-net.node', () => ({
 }))
 
 // Mock uuid
-jest.mock('uuid/v1', () => jest.fn())
+jest.mock('uuid')
 
 // Mock utilities
 jest.mock('../../../src/util/Encoding', () => ({
@@ -52,7 +52,7 @@ describe('index.ts', () => {
         mockNet.getSenderAddress.mockReturnValue(mockResult)
 
         const result = getSenderAddress('0xabcdef123456')
-        
+
         expect(mockNet.getSenderAddress).toHaveBeenCalledWith('abcdef123456')
         expect(result).toEqual(mockResult)
       })
@@ -62,7 +62,7 @@ describe('index.ts', () => {
         mockNet.getSenderAddress.mockReturnValue(mockResult)
 
         const result = getSenderAddress('abcdef123456')
-        
+
         expect(mockNet.getSenderAddress).toHaveBeenCalledWith('abcdef123456')
         expect(result).toEqual(mockResult)
       })
@@ -74,7 +74,7 @@ describe('index.ts', () => {
         mockNet.getSenderAddress.mockReturnValue(mockResult)
 
         const result = getSenderAddress('')
-        
+
         expect(mockNet.getSenderAddress).toHaveBeenCalledWith('')
         expect(result).toEqual(mockResult)
       })
@@ -84,7 +84,7 @@ describe('index.ts', () => {
         mockNet.getSenderAddress.mockReturnValue(mockResult)
 
         const result = getSenderAddress('0x')
-        
+
         expect(mockNet.getSenderAddress).toHaveBeenCalledWith('')
         expect(result).toEqual(mockResult)
       })
@@ -115,7 +115,7 @@ describe('index.ts', () => {
         stopListening: jest.fn(),
         stats: jest.fn(),
       }
-      
+
       mockNet.Sn.mockReturnValue(mockSnInstance)
 
       validOpts = {
@@ -219,15 +219,8 @@ describe('index.ts', () => {
         const sn = Sn(validOpts)
         const onResponse = jest.fn()
         const onTimeout = jest.fn()
-        
-        const promise = sn.send(
-          9000,
-          '192.168.1.1',
-          { message: 'hello' },
-          5000,
-          onResponse,
-          onTimeout
-        )
+
+        const promise = sn.send(9000, '192.168.1.1', { message: 'hello' }, 5000, onResponse, onTimeout)
 
         jest.advanceTimersByTime(10)
         await promise
@@ -243,10 +236,10 @@ describe('index.ts', () => {
         })
 
         const sn = Sn(validOpts)
-        
+
         const promise = sn.send(9000, '192.168.1.1', { message: 'hello' })
         jest.advanceTimersByTime(10)
-        
+
         await expect(promise).rejects.toThrow('failed with error Network error')
       })
 
@@ -258,15 +251,8 @@ describe('index.ts', () => {
         const sn = Sn(validOpts)
         const onResponse = jest.fn()
         const onTimeout = jest.fn()
-        
-        const promise = sn.send(
-          9000,
-          '192.168.1.1',
-          { message: 'hello' },
-          1000,
-          onResponse,
-          onTimeout
-        )
+
+        const promise = sn.send(9000, '192.168.1.1', { message: 'hello' }, 1000, onResponse, onTimeout)
 
         jest.advanceTimersByTime(10)
         await promise
@@ -293,12 +279,7 @@ describe('index.ts', () => {
           compression: 'none' as const,
         }
 
-        const promise = sn.sendWithHeader(
-          9000,
-          '192.168.1.1',
-          { message: 'hello' },
-          header
-        )
+        const promise = sn.sendWithHeader(9000, '192.168.1.1', { message: 'hello' }, header)
 
         jest.advanceTimersByTime(10)
         await promise
@@ -308,7 +289,7 @@ describe('index.ts', () => {
         expect(callArgs[0]).toBe(9000)
         expect(callArgs[1]).toBe('192.168.1.1')
         expect(callArgs[2]).toBe(1) // header version from headerOpts
-        
+
         const sentHeader = JSON.parse(callArgs[3])
         expect(sentHeader.sender_id).toBe('sender123')
         expect(sentHeader.uuid).toBe('test-uuid-123')
@@ -317,9 +298,11 @@ describe('index.ts', () => {
 
     describe('multiSendWithHeader', () => {
       test('should send to multiple destinations', async () => {
-        mockSnInstance.multi_send_with_header.mockImplementation((ports, addrs, ver, hdr, data, cb, awaitProcessing) => {
-          setTimeout(() => cb(null), 10)
-        })
+        mockSnInstance.multi_send_with_header.mockImplementation(
+          (ports, addrs, ver, hdr, data, cb, awaitProcessing) => {
+            setTimeout(() => cb(null), 10)
+          }
+        )
 
         const sn = Sn(validOpts)
         const header = {
@@ -347,9 +330,11 @@ describe('index.ts', () => {
       })
 
       test('should handle multiSend with awaitProcessing false', async () => {
-        mockSnInstance.multi_send_with_header.mockImplementation((ports, addrs, ver, hdr, data, cb, awaitProcessing) => {
-          setTimeout(() => cb(null), 10)
-        })
+        mockSnInstance.multi_send_with_header.mockImplementation(
+          (ports, addrs, ver, hdr, data, cb, awaitProcessing) => {
+            setTimeout(() => cb(null), 10)
+          }
+        )
 
         const sn = Sn(validOpts)
         const header = {
@@ -388,9 +373,9 @@ describe('index.ts', () => {
 
         const sn = Sn(validOpts)
         const handleData = jest.fn()
-        
+
         const server = await sn.listen(handleData)
-        
+
         expect(server).toEqual({ server: 'mock-server' })
 
         // Simulate incoming message
@@ -429,13 +414,7 @@ describe('index.ts', () => {
 
         // Send a message expecting response
         const onResponse = jest.fn()
-        const promise = sn.send(
-          9000,
-          '192.168.1.1',
-          { message: 'request' },
-          5000,
-          onResponse
-        )
+        const promise = sn.send(9000, '192.168.1.1', { message: 'request' }, 5000, onResponse)
 
         jest.advanceTimersByTime(10)
         await promise
@@ -464,7 +443,7 @@ describe('index.ts', () => {
 
         const sn = Sn(validOpts)
         const handleData = jest.fn()
-        
+
         await sn.listen(handleData)
 
         const incomingData = JSON.stringify({
@@ -510,9 +489,9 @@ describe('index.ts', () => {
         const handleData = jest.fn().mockImplementation(() => {
           throw new Error('Handler error')
         })
-        
+
         const consoleError = jest.spyOn(console, 'error').mockImplementation()
-        
+
         await sn.listen(handleData)
 
         const incomingData = JSON.stringify({
@@ -524,10 +503,7 @@ describe('index.ts', () => {
         })
 
         expect(() => listenerCallback(incomingData, '192.168.1.1', 9000)).not.toThrow()
-        expect(consoleError).toHaveBeenCalledWith(
-          "Error in shardus-net's listen callback:",
-          expect.any(Error)
-        )
+        expect(consoleError).toHaveBeenCalledWith("Error in shardus-net's listen callback:", expect.any(Error))
 
         consoleError.mockRestore()
       })
@@ -601,7 +577,7 @@ describe('index.ts', () => {
     describe('setLogFlags', () => {
       test('should set log flags', () => {
         const sn = Sn(validOpts)
-        
+
         sn.setLogFlags({
           net_verbose: true,
           net_stats: true,
@@ -616,18 +592,18 @@ describe('index.ts', () => {
 
       test('should handle null log flags', () => {
         const sn = Sn(validOpts)
-        
+
         expect(() => sn.setLogFlags(null)).not.toThrow()
       })
 
       test('should set default values for missing flags', () => {
         const sn = Sn(validOpts)
-        
+
         // Reset flags first to ensure clean state
         logFlags.net_verbose = false
         logFlags.net_stats = undefined as any
         logFlags.net_rust = undefined as any
-        
+
         sn.setLogFlags({
           net_verbose: true,
         })
@@ -649,7 +625,7 @@ describe('index.ts', () => {
         const sn = Sn(validOpts)
         const handleData = jest.fn()
         const consoleError = jest.spyOn(console, 'error').mockImplementation()
-        
+
         await sn.listen(handleData)
 
         // Send invalid JSON
@@ -671,20 +647,20 @@ describe('index.ts', () => {
 
         const consoleLog = jest.spyOn(console, 'log').mockImplementation()
         const consoleError = jest.spyOn(console, 'error').mockImplementation()
-        
+
         const sn = Sn(optsWithCustomStringifier)
-        
+
         // Send with timeout 0 to avoid timeout handling complexity
         const promise = sn.send(9000, '192.168.1.1', { message: 'test' }, 0)
-        
+
         // Wait for the promise to resolve/reject
         await expect(promise).rejects.toThrow('failed with error error caught in _sendAug 1')
-        
+
         expect(consoleLog).toHaveBeenCalledWith(
           '_sendAug - error sending from ts side of shardus-net',
           expect.any(Error)
         )
-        
+
         consoleLog.mockRestore()
         consoleError.mockRestore()
       })
@@ -706,7 +682,7 @@ describe('index.ts', () => {
         const sn = Sn(optsWithCustomParser)
         const handleData = jest.fn()
         const consoleError = jest.spyOn(console, 'error').mockImplementation()
-        
+
         await sn.listen(handleData)
 
         // Send valid JSON that will trigger custom parser
@@ -720,10 +696,7 @@ describe('index.ts', () => {
 
         listenerCallback(validJson, '192.168.1.1', 9000)
 
-        expect(consoleError).toHaveBeenCalledWith(
-          "Error in shardus-net's listen callback:",
-          expect.any(Error)
-        )
+        expect(consoleError).toHaveBeenCalledWith("Error in shardus-net's listen callback:", expect.any(Error))
         expect(handleData).not.toHaveBeenCalled()
 
         consoleError.mockRestore()
@@ -748,14 +721,7 @@ describe('index.ts', () => {
         const onTimeout = jest.fn()
 
         // Send request with short timeout
-        const promise = sn.send(
-          9000,
-          '192.168.1.1',
-          { message: 'test' },
-          100,
-          onResponse,
-          onTimeout
-        )
+        const promise = sn.send(9000, '192.168.1.1', { message: 'test' }, 100, onResponse, onTimeout)
 
         jest.advanceTimersByTime(10)
         await promise
@@ -796,7 +762,7 @@ describe('index.ts', () => {
           // Respond to the message
           respond({ response: 'acknowledged' })
         })
-        
+
         await sn.listen(handleData)
 
         const incomingData = JSON.stringify({
@@ -832,7 +798,7 @@ describe('index.ts', () => {
           // Try to respond after timeout
           respond({ response: 'too late' })
         })
-        
+
         await sn.listen(handleData)
 
         const sendTime = Date.now() - 10000 // 10 seconds ago
